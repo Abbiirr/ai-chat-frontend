@@ -1,0 +1,168 @@
+/* CSS Custom Properties for ChatGPT-like theming */
+:root {
+    /* Primary Colors */
+    --bg-primary: #212121;
+    --bg-secondary: #2f2f2f;
+    --bg-tertiary: #3c3c3c;
+
+    /* Text Colors */
+    --text-primary: #ececec;
+    --text-secondary: #b4b4b4;
+    --text-placeholder: #8e8e8e;
+
+    /* Border Colors */
+    --border-light: #4d4d4d;
+    --border-medium: #565656;
+    --border-focus: #10a37f;
+
+    /* Avatar Colors */
+    --user-avatar-bg: #5436da;
+    --user-avatar-text: #ffffff;
+    --bot-avatar-bg: #10a37f;
+    --bot-avatar-text: #ffffff;
+
+    /* Button Colors */
+    --primary-button-bg: #10a37f;
+    --primary-button-text: #ffffff;
+    --primary-button-hover: #0d8f6c;
+    --disabled-button-bg: #40414f;
+    --disabled-button-text: #6f6f6f;
+
+    /* Input Colors */
+    --input-bg: #40414f;
+    --focus-ring: rgba(16, 163, 127, 0.2);
+
+    /* Scrollbar Colors */
+    --scrollbar-thumb: #4d4d4d;
+    --scrollbar-thumb-hover: #666666;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Light Theme */
+[data-theme="light"] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f7f7f8;
+    --bg-tertiary: #efefef;
+
+    --text-primary: #343541;
+    --text-secondary: #676767;
+    --text-placeholder: #8e8ea0;
+
+    --border-light: #e5e5e5;
+    --border-medium: #d1d5db;
+    --border-focus: #10a37f;
+
+    --user-avatar-bg: #5436da;
+    --user-avatar-text: #ffffff;
+    --bot-avatar-bg: #10a37f;
+    --bot-avatar-text: #ffffff;
+
+    --primary-button-bg: #10a37f;
+    --primary-button-text: #ffffff;
+    --primary-button-hover: #0d8f6c;
+    --disabled-button-bg: #f4f4f4;
+    --disabled-button-text: #acacbe;
+
+    --input-bg: #ffffff;
+    --focus-ring: rgba(16, 163, 127, 0.15);
+
+    --scrollbar-thumb: #d1d5db;
+    --scrollbar-thumb-hover: #9ca3af;
+}
+
+/* High Contrast Theme */
+[data-theme="high-contrast"] {
+    --bg-primary: #000000;
+    --bg-secondary: #1a1a1a;
+    --bg-tertiary: #2d2d2d;
+
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-placeholder: #999999;
+
+    --border-light: #666666;
+    --border-medium: #888888;
+    --border-focus: #00ff88;
+
+    --user-avatar-bg: #0066ff;
+    --user-avatar-text: #ffffff;
+    --bot-avatar-bg: #00ff88;
+    --bot-avatar-text: #000000;
+
+    --primary-button-bg: #00ff88;
+    --primary-button-text: #000000;
+    --primary-button-hover: #00cc6a;
+    --disabled-button-bg: #333333;
+    --disabled-button-text: #666666;
+
+    --input-bg: #1a1a1a;
+    --focus-ring: rgba(0, 255, 136, 0.3);
+
+    --scrollbar-thumb: #666666;
+    --scrollbar-thumb-hover: #888888;
+}
+
+/* Animation Variables */
+:root {
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.2s ease;
+    --transition-slow: 0.3s ease;
+
+    --animation-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --animation-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Typography Variables */
+:root {
+    --font-family-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    --font-family-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Fira Code', 'Source Code Pro', monospace;
+
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.75;
+}
+
+/* Spacing Variables */
+:root {
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    --spacing-3xl: 4rem;
+}
+
+/* Border Radius Variables */
+:root {
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
+    --radius-full: 9999px;
+}
+
+/* Z-index Variables */
+:root {
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    --z-toast: 1080;
+}
