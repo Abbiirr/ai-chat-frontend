@@ -1,6 +1,7 @@
 import {useState, useRef, useEffect} from 'react'
 import {Send} from 'lucide-react'
 import './ChatInterface.css'
+import ChatInput from './ChatInput'
 
 function parseEventMessage(raw) {
     const result = { event: '', data: '' };
@@ -182,36 +183,12 @@ export default function ChatInterface() {
             </main>
 
             {/* Input Area */}
-            <footer className="input-container">
-                <div className="input-wrapper">
-                    <div className="input-field">
-            <textarea
-                className="message-input"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Describe your banking transaction issue..."
-                onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        sendMessage()
-                    }
-                }}
-                disabled={isStreaming}
-                rows={1}
+            <ChatInput
+                input={input}
+                setInput={setInput}
+                onSend={sendMessage}
+                isStreaming={isStreaming}
             />
-                        <button
-                            className={`send-button ${input.trim() && !isStreaming ? 'active' : 'disabled'}`}
-                            onClick={sendMessage}
-                            disabled={!input.trim() || isStreaming}
-                        >
-                            <Send size={16}/>
-                        </button>
-                    </div>
-                    <div className="input-hint">
-                        Banking Analysis Assistant - Check the browser console for debug info.
-                    </div>
-                </div>
-            </footer>
         </div>
     )
 }
