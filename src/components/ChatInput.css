@@ -1,0 +1,8 @@
+.message-input {
+    resize: none;
+    overflow: hidden;
+}
+
+.message-input:focus {
+    outline: none;
+}

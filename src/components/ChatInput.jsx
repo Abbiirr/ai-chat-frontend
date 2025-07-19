@@ -1,6 +1,7 @@
 // src/components/ChatInput.jsx
 import React, { useEffect, useRef } from 'react'
 import { Send } from 'lucide-react'
+import './ChatInput.css'
 
 export default function ChatInput({ input, setInput, onSend, isStreaming }) {
     const textareaRef = useRef(null)
@@ -14,9 +15,7 @@ export default function ChatInput({ input, setInput, onSend, isStreaming }) {
         }
     }, [input])
 
-    const handleChange = e => {
-        setInput(e.target.value)
-    }
+    const handleChange = e => setInput(e.target.value)
 
     return (
         <footer className="input-container">
@@ -36,7 +35,6 @@ export default function ChatInput({ input, setInput, onSend, isStreaming }) {
               }}
               disabled={isStreaming}
               rows={1}
-              style={{ resize: 'none', overflow: 'hidden' }}
           />
                     <button
                         className={`send-button ${input.trim() && !isStreaming ? 'active' : 'disabled'}`}
