@@ -1,4 +1,27 @@
 /* Chat Container */
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f7f7f8;
+    --text-primary: #353740;
+    --text-secondary: #6e6e80;
+    --text-placeholder: #8e8ea0;
+    --border-light: #e5e5e5;
+    --border-medium: #d1d5db;
+    --border-focus: #10a37f;
+    --input-bg: #ffffff;
+    --focus-ring: rgba(16, 163, 127, 0.1);
+    --primary-button-bg: #10a37f;
+    --primary-button-text: #ffffff;
+    --primary-button-hover: #0d8b6c;
+    --disabled-button-bg: #f4f4f4;
+    --disabled-button-text: #d1d5db;
+    --user-avatar-bg: #10a37f;
+    --user-avatar-text: #ffffff;
+    --bot-avatar-bg: #da70d6;
+    --bot-avatar-text: #ffffff;
+    --scrollbar-thumb: #d1d5db;
+    --scrollbar-thumb-hover: #9ca3af;
+}
 .chat-container {
     display: flex;
     flex-direction: column;
