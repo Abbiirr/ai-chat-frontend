@@ -4,7 +4,7 @@ import './ChatInterface.css'
 import ChatInput from './ChatInput'
 
 function parseEventMessage(raw) {
-    const result = { event: '', data: '' };
+    const result = {event: '', data: ''};
     raw.trim().split(/\r?\n/).forEach(line => {
         const [prefix, ...rest] = line.split(': ');
         const value = rest.join(': ');
@@ -20,6 +20,7 @@ export default function ChatInterface() {
     const [isStreaming, setIsStreaming] = useState(false)
     const scrollRef = useRef()
     const eventSourceRef = useRef()
+    const [downloadLinks, setDownloadLinks] = useState([]);
 
 
     useEffect(() => {
@@ -73,10 +74,14 @@ export default function ChatInterface() {
 
             eventSourceRef.current.onmessage = e => {
                 console.log('📨 Raw SSE message:', e.data);
-                const { event, data: rawData } = parseEventMessage(e.data);
+                const {event, data: rawData} = parseEventMessage(e.data);
                 console.log(`📨 Parsed event '${event}':`, rawData);
                 let parsed;
-                try { parsed = JSON.parse(rawData); } catch { parsed = rawData; }
+                try {
+                    parsed = JSON.parse(rawData);
+                } catch {
+                    parsed = rawData;
+                }
                 botMsg += `${event}\n${JSON.stringify(parsed, null, 2)}\n\n`;
                 setMessages(msgs => {
                     const copy = [...msgs];
@@ -128,6 +133,40 @@ export default function ChatInterface() {
                     return copy
                 })
             }
+
+            eventSourceRef.current.addEventListener('Compiled Summary', e => {
+                console.log('📁 Compiled Summary event received:', e.data);
+                try {
+                    const payload = JSON.parse(e.data);
+                    const links = [];
+
+                    // Handle created_files (single string path)
+                    if (payload.created_files) {
+                        const createdFileName = payload.created_files.split(/[\\/]/).pop();
+                        links.push({
+                            name: createdFileName,
+                            url: `http://localhost:8000/download/?filename=${encodeURIComponent(createdFileName)}`,
+                            type: 'trace_analysis'
+                        });
+                    }
+
+                    // Handle master_summary_file (single string path)
+                    if (payload.master_summary_file) {
+                        const masterFileName = payload.master_summary_file.split(/[\\/]/).pop();
+                        links.push({
+                            name: masterFileName,
+                            url: `http://localhost:8000/download/?filename=${encodeURIComponent(masterFileName)}`,
+                            type: 'master_summary'
+                        });
+                    }
+
+                    setDownloadLinks(links);
+                    console.log('📁 Download links created:', links);
+                } catch (err) {
+                    console.error('❌ Error parsing Compiled Summary:', err);
+                }
+            });
+
 
         } catch (error) {
             console.error('❌ Error in sendMessage:', error)
@@ -182,6 +221,28 @@ export default function ChatInterface() {
                 </div>
             </main>
 
+            {downloadLinks.length > 0 && (
+                <div className="download-panel">
+                    <h2>Download Analysis Files</h2>
+                    <ul className="download-list">
+                        {downloadLinks.map((link, index) => (
+                            <li key={`${link.url}-${index}`}>
+                                <a
+                                    href={link.url}
+                                    download={link.name}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="download-link"
+                                >
+                                    {link.type === 'master_summary' ? '📊 ' : '📄 '}
+                                    {link.name}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {/* Input Area */}
             <ChatInput
                 input={input}
@@ -189,6 +250,7 @@ export default function ChatInterface() {
                 onSend={sendMessage}
                 isStreaming={isStreaming}
             />
+
         </div>
     )
 }
