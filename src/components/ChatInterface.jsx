@@ -4,7 +4,7 @@ import './ChatInterface.css'
 import ChatInput from './ChatInput'
 
 function parseEventMessage(raw) {
-    const result = {event: '', data: ''};
+    const result = { event: '', data: '' };
     raw.trim().split(/\r?\n/).forEach(line => {
         const [prefix, ...rest] = line.split(': ');
         const value = rest.join(': ');
@@ -12,6 +12,38 @@ function parseEventMessage(raw) {
         else if (prefix === 'data') result.data += value;
     });
     return result;
+}
+
+/**
+ * Helper: turn a parsed "Compiled Summary" payload
+ * into an array of { name, url, type } download links.
+ */
+function buildDownloadLinks(payload) {
+    const links = []
+
+    // created_files is an array of full file paths
+    if (Array.isArray(payload.created_files)) {
+        payload.created_files.forEach(fullPath => {
+            const name = fullPath.split(/[\\/]/).pop()
+            links.push({
+                name,
+                url: `http://localhost:8000/download/?filename=${encodeURIComponent(name)}`,
+                type: 'trace_analysis',
+            })
+        })
+    }
+
+    // master_summary_file is a single path string
+    if (typeof payload.master_summary_file === 'string') {
+        const name = payload.master_summary_file.split(/[\\/]/).pop()
+        links.push({
+            name,
+            url: `http://localhost:8000/download/?filename=${encodeURIComponent(name)}`,
+            type: 'master_summary',
+        })
+    }
+
+    return links
 }
 
 export default function ChatInterface() {
@@ -65,7 +97,7 @@ export default function ChatInterface() {
             console.log('🔌 Connecting to EventSource:', fullStreamUrl)
 
             eventSourceRef.current = new EventSource(fullStreamUrl)
-            let botMsg = ''
+            // let botMsg = ''
 
             // Log EventSource connection status
             eventSourceRef.current.onopen = (e) => {
@@ -73,21 +105,33 @@ export default function ChatInterface() {
             }
 
             eventSourceRef.current.onmessage = e => {
+
                 console.log('📨 Raw SSE message:', e.data);
-                const {event, data: rawData} = parseEventMessage(e.data);
+                const { event, data: rawData } = parseEventMessage(e.data)
                 console.log(`📨 Parsed event '${event}':`, rawData);
                 let parsed;
+                
                 try {
-                    parsed = JSON.parse(rawData);
+                    parsed = JSON.parse(rawData)
                 } catch {
-                    parsed = rawData;
+                    parsed = rawData
                 }
-                botMsg += `${event}\n${JSON.stringify(parsed, null, 2)}\n\n`;
+
+                // 1) Append to the chat transcript
                 setMessages(msgs => {
-                    const copy = [...msgs];
-                    if (copy.length) copy[copy.length - 1].text = botMsg;
-                    return copy;
-                });
+                    const copy = [...msgs]
+                    if (copy.length) {
+                        copy[copy.length - 1].text += `${event}\n${JSON.stringify(parsed, null, 2)}\n\n`
+                    }
+                    return copy
+                })
+
+                // 2) If this is our Compiled Summary event, build & set download links
+                if (event === 'Compiled Summary' && typeof parsed === 'object') {
+                    const links = buildDownloadLinks(parsed)
+                    setDownloadLinks(links)
+                    console.log('📁 Download links created:', links)
+                }
             };
 
             // Handle different types of events
