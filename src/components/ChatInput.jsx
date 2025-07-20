@@ -26,7 +26,7 @@ export default function ChatInput({ input, setInput, onSend, isStreaming }) {
               className="message-input"
               value={input}
               onChange={handleChange}
-              placeholder="Describe your banking transaction issue..."
+              placeholder="Just tell me what you need"
               onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
@@ -45,7 +45,7 @@ export default function ChatInput({ input, setInput, onSend, isStreaming }) {
                     </button>
                 </div>
                 <div className="input-hint">
-                    Banking Analysis Assistant - Check the browser console for debug info.
+                    Log Analysis Assistant - Check the browser console for debug info.
                 </div>
             </div>
         </footer>

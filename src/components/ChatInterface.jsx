@@ -137,14 +137,14 @@ export default function ChatInterface() {
     return (
         <div className="chat-container">
             <header className="chat-header">
-                <h1 className="chat-title">Banking Analysis Chat</h1>
+                <h1 className="chat-title">Loggy</h1>
             </header>
 
             <main className="messages-container">
                 <div className="messages-wrapper">
                     {messages.length === 0 && (
                         <div className="welcome-message">
-                            <div className="welcome-title">How can I help you analyze banking transactions today?</div>
+                            <div className="welcome-title">How can I help you check logs today?</div>
                         </div>
                     )}
 
