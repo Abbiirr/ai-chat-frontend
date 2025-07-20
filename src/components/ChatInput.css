@@ -6,3 +6,15 @@
 .message-input:focus {
     outline: none;
 }
+/* the little badge showing your current project */
+.project-pill {
+    display: inline-block;
+    background-color: #edf2f7;   /* light gray */
+    color: #2d3748;              /* dark text */
+    border-radius: 0.375rem;     /* rounded corners */
+    padding: 0.25rem 0.5rem;      /* vertical + horizontal space */
+    margin: 0 0.5rem;            /* gap to ToolButton and textarea */
+    font-size: 0.875rem;         /* small font */
+    font-weight: 500;
+    white-space: nowrap;
+}

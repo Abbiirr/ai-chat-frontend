@@ -1,10 +1,16 @@
+/* Container needed for absolute positioning */
+.tool-button-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* The gear button */
 .tool-button {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 2rem;
     height: 2rem;
-    margin-left: 0.25rem;
     border: none;
     background: transparent;
     cursor: pointer;
@@ -19,4 +25,37 @@
 
 .tool-button:hover:not(:disabled) {
     opacity: 1;
+}
+
+/* Dropdown menu now appears above the button */
+.tool-menu {
+    position: absolute;
+    bottom: 2.5rem;      /* push it up by roughly the button’s height + margin */
+    right: 0;
+    top: auto;           /* unset any top */
+    background: #fff;     /* white background */
+    color: #333;          /* dark text for contrast */
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 0.25rem 0;
+    margin: 0;
+    list-style: none;
+    z-index: 100;
+}
+
+/* Each option */
+.tool-menu-item {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;      /* inherit the #333 text color */
+}
+
+.tool-menu-item:hover {
+    background: #f5f5f5;
 }

@@ -1,9 +1,12 @@
 // src/components/ChatInput.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import {Send} from 'lucide-react';
 import ToolButton from './ToolButton';
+import './ChatInput.css'
+
 
 export default function ChatInput({input, setInput, onSend, isStreaming, onToolClick}) {
+    const [project, setProject] = useState('NCC');
     return (
         <footer className="input-container">
             <div className="input-wrapper">
@@ -12,7 +15,11 @@ export default function ChatInput({input, setInput, onSend, isStreaming, onToolC
                         onClick={onToolClick}
                         disabled={isStreaming}
                         title="Additional settings"
+                        options={['NCC','ABBL','GIGLY']}
+                        onSelect={setProject}
                     />
+                    {/* selected‐project pill */}
+                    <span className="project-pill">{project}</span>
                     <textarea
                         className="message-input"
                         value={input}
