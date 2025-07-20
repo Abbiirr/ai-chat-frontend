@@ -2,6 +2,7 @@ import {useState, useRef, useEffect} from 'react'
 import {Send} from 'lucide-react'
 import './ChatInterface.css'
 import ChatInput from './ChatInput'
+import DownloadPanel from './DownloadPanel'
 
 function parseEventMessage(raw) {
     const result = { event: '', data: '' };
@@ -14,14 +15,9 @@ function parseEventMessage(raw) {
     return result;
 }
 
-/**
- * Helper: turn a parsed "Compiled Summary" payload
- * into an array of { name, url, type } download links.
- */
 function buildDownloadLinks(payload) {
     const links = []
 
-    // created_files is an array of full file paths
     if (Array.isArray(payload.created_files)) {
         payload.created_files.forEach(fullPath => {
             const name = fullPath.split(/[\\/]/).pop()
@@ -33,7 +29,6 @@ function buildDownloadLinks(payload) {
         })
     }
 
-    // master_summary_file is a single path string
     if (typeof payload.master_summary_file === 'string') {
         const name = payload.master_summary_file.split(/[\\/]/).pop()
         links.push({
@@ -50,74 +45,47 @@ export default function ChatInterface() {
     const [messages, setMessages] = useState([])
     const [input, setInput] = useState('')
     const [isStreaming, setIsStreaming] = useState(false)
+    const [downloadLinks, setDownloadLinks] = useState([])
     const scrollRef = useRef()
     const eventSourceRef = useRef()
-    const [downloadLinks, setDownloadLinks] = useState([]);
-
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({behavior: 'smooth'})
-    }, [messages])
+    }, [messages, downloadLinks]) // Also scroll when download links change
 
     const sendMessage = async () => {
         if (!input.trim() || isStreaming) return
 
         const userMessage = input
-        console.log('🚀 Sending message:', userMessage)
         setMessages(m => [...m, {from: 'user', text: userMessage}])
         setInput('')
         setIsStreaming(true)
 
         try {
-            // Ask backend for a stream URL
-            console.log('📡 Fetching stream URL from backend...')
             const response = await fetch('http://localhost:8000/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({prompt: userMessage})
             })
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const {streamUrl} = await response.json()
 
-            console.log('📡 Response status:', response.status)
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-            }
-
-            const data = await response.json()
-            console.log('📡 Received data:', data)
-            const {streamUrl} = data
-
-            console.log('🔗 Stream URL:', streamUrl)
-
-            // Add bot message placeholder
             setMessages(m => [...m, {from: 'bot', text: '', isStreaming: true}])
+            eventSourceRef.current = new EventSource(`http://localhost:8000${streamUrl}`)
 
-            // Create EventSource connection
-            const fullStreamUrl = `http://localhost:8000${streamUrl}`
-            console.log('🔌 Connecting to EventSource:', fullStreamUrl)
-
-            eventSourceRef.current = new EventSource(fullStreamUrl)
-            // let botMsg = ''
-
-            // Log EventSource connection status
-            eventSourceRef.current.onopen = (e) => {
-                console.log('✅ EventSource connection opened:', e)
+            eventSourceRef.current.onopen = () => console.log('✅ SSE Opened')
+            eventSourceRef.current.onerror = (e) => {
+                console.error('❌ SSE Error', e)
+                eventSourceRef.current.close()
+                setIsStreaming(false)
+                setMessages(m => m.map(msg => msg.isStreaming ? {...msg, isStreaming: false} : msg))
             }
 
             eventSourceRef.current.onmessage = e => {
-
-                console.log('📨 Raw SSE message:', e.data);
                 const { event, data: rawData } = parseEventMessage(e.data)
-                console.log(`📨 Parsed event '${event}':`, rawData);
-                let parsed;
-                
-                try {
-                    parsed = JSON.parse(rawData)
-                } catch {
-                    parsed = rawData
-                }
+                let parsed
+                try { parsed = JSON.parse(rawData) } catch { parsed = rawData }
 
-                // 1) Append to the chat transcript
                 setMessages(msgs => {
                     const copy = [...msgs]
                     if (copy.length) {
@@ -126,100 +94,23 @@ export default function ChatInterface() {
                     return copy
                 })
 
-                // 2) If this is our Compiled Summary event, build & set download links
                 if (event === 'Compiled Summary' && typeof parsed === 'object') {
-                    const links = buildDownloadLinks(parsed)
-                    setDownloadLinks(links)
-                    console.log('📁 Download links created:', links)
+                    setDownloadLinks(buildDownloadLinks(parsed))
                 }
-            };
-
-            // Handle different types of events
-            eventSourceRef.current.addEventListener('done', (e) => {
-                console.log('✅ Stream completed with done event:', e)
-                eventSourceRef.current.close()
-                setIsStreaming(false)
-                setMessages(m => {
-                    const copy = [...m]
-                    if (copy.length > 0) {
-                        copy[copy.length - 1].isStreaming = false
-                    }
-                    return copy
-                })
-            })
-
-            eventSourceRef.current.addEventListener('error', (e) => {
-                console.log('❌ Stream error event:', e)
-                eventSourceRef.current.close()
-                setIsStreaming(false)
-                setMessages(m => {
-                    const copy = [...m]
-                    if (copy.length > 0) {
-                        copy[copy.length - 1].isStreaming = false
-                    }
-                    return copy
-                })
-            })
-
-            eventSourceRef.current.onerror = (e) => {
-                console.error('❌ EventSource connection error:', e)
-                console.log('EventSource readyState:', eventSourceRef.current?.readyState)
-                eventSourceRef.current.close()
-                setIsStreaming(false)
-                setMessages(m => {
-                    const copy = [...m]
-                    if (copy.length > 0) {
-                        copy[copy.length - 1].isStreaming = false
-                        if (!copy[copy.length - 1].text) {
-                            copy[copy.length - 1].text = 'Connection failed. Please try again.'
-                        }
-                    }
-                    return copy
-                })
             }
 
-            eventSourceRef.current.addEventListener('Compiled Summary', e => {
-                console.log('📁 Compiled Summary event received:', e.data);
-                try {
-                    const payload = JSON.parse(e.data);
-                    const links = [];
-
-                    // Handle created_files (single string path)
-                    if (payload.created_files) {
-                        const createdFileName = payload.created_files.split(/[\\/]/).pop();
-                        links.push({
-                            name: createdFileName,
-                            url: `http://localhost:8000/download/?filename=${encodeURIComponent(createdFileName)}`,
-                            type: 'trace_analysis'
-                        });
-                    }
-
-                    // Handle master_summary_file (single string path)
-                    if (payload.master_summary_file) {
-                        const masterFileName = payload.master_summary_file.split(/[\\/]/).pop();
-                        links.push({
-                            name: masterFileName,
-                            url: `http://localhost:8000/download/?filename=${encodeURIComponent(masterFileName)}`,
-                            type: 'master_summary'
-                        });
-                    }
-
-                    setDownloadLinks(links);
-                    console.log('📁 Download links created:', links);
-                } catch (err) {
-                    console.error('❌ Error parsing Compiled Summary:', err);
-                }
-            });
-
-
-        } catch (error) {
-            console.error('❌ Error in sendMessage:', error)
+            eventSourceRef.current.addEventListener('done', () => {
+                eventSourceRef.current.close()
+                setIsStreaming(false)
+                setMessages(m => m.map(msg => msg.isStreaming ? {...msg, isStreaming: false} : msg))
+            })
+        } catch (err) {
+            console.error('SendMessage Error', err)
             setIsStreaming(false)
             setMessages(m => {
                 const copy = [...m]
-                if (copy.length > 0 && copy[copy.length - 1].from === 'bot' && !copy[copy.length - 1].text) {
-                    copy.pop() // Remove empty bot message if request failed
-                }
+                if (copy.length && copy[copy.length - 1].from === 'bot' && copy[copy.length - 1].isStreaming)
+                    copy.pop()
                 return copy
             })
         }
@@ -227,12 +118,10 @@ export default function ChatInterface() {
 
     return (
         <div className="chat-container">
-            {/* Header */}
             <header className="chat-header">
                 <h1 className="chat-title">Banking Analysis Chat</h1>
             </header>
 
-            {/* Messages Area */}
             <main className="messages-container">
                 <div className="messages-wrapper">
                     {messages.length === 0 && (
@@ -245,56 +134,26 @@ export default function ChatInterface() {
                         <div key={i} className={`message-group ${m.from === 'user' ? 'user-message' : 'bot-message'}`}>
                             <div className="message-content">
                                 <div className="message-avatar">
-                  <span className="avatar-text">
-                    {m.from === 'user' ? 'You' : 'AI'}
-                  </span>
+                                    <span className="avatar-text">{m.from === 'user' ? 'You' : 'AI'}</span>
                                 </div>
-
                                 <div className="message-text">
                                     <div className="text-content" style={{whiteSpace: 'pre-wrap'}}>
                                         {m.text || (m.isStreaming ? 'Analyzing...' : '')}
                                     </div>
-                                    {m.isStreaming && (
-                                        <span className="typing-indicator"/>
-                                    )}
+                                    {m.isStreaming && <span className="typing-indicator"/>}
                                 </div>
                             </div>
                         </div>
                     ))}
+
+                    {/* Move download panel inside messages wrapper so it flows with content */}
+                    <DownloadPanel links={downloadLinks} />
+
                     <div ref={scrollRef}/>
                 </div>
             </main>
 
-            {downloadLinks.length > 0 && (
-                <div className="download-panel">
-                    <h2>Download Analysis Files</h2>
-                    <ul className="download-list">
-                        {downloadLinks.map((link, index) => (
-                            <li key={`${link.url}-${index}`}>
-                                <a
-                                    href={link.url}
-                                    download={link.name}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="download-link"
-                                >
-                                    {link.type === 'master_summary' ? '📊 ' : '📄 '}
-                                    {link.name}
-                                </a>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-            {/* Input Area */}
-            <ChatInput
-                input={input}
-                setInput={setInput}
-                onSend={sendMessage}
-                isStreaming={isStreaming}
-            />
-
+            <ChatInput input={input} setInput={setInput} onSend={sendMessage} isStreaming={isStreaming} />
         </div>
     )
 }

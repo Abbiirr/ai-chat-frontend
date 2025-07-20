@@ -1,0 +1,35 @@
+/* DownloadPanel.css */
+.download-panel {
+    background-color: transparent;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 0.75rem 1rem;
+}
+
+.download-panel h2 {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin: 0 0 0.5rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.download-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .download-panel {
+        border-top-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .download-panel h2 {
+        color: #9ca3af;
+    }
+}
