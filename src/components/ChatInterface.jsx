@@ -2,7 +2,7 @@ import {useState, useRef, useEffect} from 'react'
 import {Send} from 'lucide-react'
 import './ChatInterface.css'
 import ChatInput from './ChatInput'
-import DownloadPanel from './DownloadPanel'
+import ChatBubble from './ChatBubble'
 
 function parseEventMessage(raw) {
     const result = { event: '', data: '' };
@@ -51,7 +51,24 @@ export default function ChatInterface() {
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({behavior: 'smooth'})
-    }, [messages, downloadLinks]) // Also scroll when download links change
+    }, [messages, downloadLinks])
+
+    // Update the last bot message with download links when they're available
+    useEffect(() => {
+        if (downloadLinks.length > 0) {
+            setMessages(msgs => {
+                const copy = [...msgs]
+                // Find the last bot message and add download links to it
+                for (let i = copy.length - 1; i >= 0; i--) {
+                    if (copy[i].from === 'bot') {
+                        copy[i] = { ...copy[i], downloadLinks }
+                        break
+                    }
+                }
+                return copy
+            })
+        }
+    }, [downloadLinks])
 
     const sendMessage = async () => {
         if (!input.trim() || isStreaming) return
@@ -60,6 +77,7 @@ export default function ChatInterface() {
         setMessages(m => [...m, {from: 'user', text: userMessage}])
         setInput('')
         setIsStreaming(true)
+        setDownloadLinks([]) // Clear previous download links
 
         try {
             const response = await fetch('http://localhost:8000/api/chat', {
@@ -130,24 +148,21 @@ export default function ChatInterface() {
                         </div>
                     )}
 
-                    {messages.map((m, i) => (
-                        <div key={i} className={`message-group ${m.from === 'user' ? 'user-message' : 'bot-message'}`}>
-                            <div className="message-content">
-                                <div className="message-avatar">
-                                    <span className="avatar-text">{m.from === 'user' ? 'You' : 'AI'}</span>
-                                </div>
-                                <div className="message-text">
-                                    <div className="text-content" style={{whiteSpace: 'pre-wrap'}}>
-                                        {m.text || (m.isStreaming ? 'Analyzing...' : '')}
-                                    </div>
-                                    {m.isStreaming && <span className="typing-indicator"/>}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                    {messages.map((message, index) => {
+                        const isLastBotMessage = message.from === 'bot' &&
+                            index === messages.length - 1 ||
+                            (index < messages.length - 1 && messages[index + 1].from === 'user')
 
-                    {/* Move download panel inside messages wrapper so it flows with content */}
-                    <DownloadPanel links={downloadLinks} />
+                        return (
+                            <ChatBubble
+                                key={index}
+                                message={message}
+                                index={index}
+                                downloadLinks={message.downloadLinks || []}
+                                isLastBotMessage={isLastBotMessage}
+                            />
+                        )
+                    })}
 
                     <div ref={scrollRef}/>
                 </div>
