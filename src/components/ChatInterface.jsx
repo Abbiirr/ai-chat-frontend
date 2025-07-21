@@ -70,21 +70,27 @@ export default function ChatInterface() {
         }
     }, [downloadLinks])
 
-    const sendMessage = async () => {
+    const sendMessage = async (userMessage, project, env) => {
         if (!input.trim() || isStreaming) return
-
-        const userMessage = input
+        console.log(userMessage, project, env)
         setMessages(m => [...m, {from: 'user', text: userMessage}])
         setInput('')
         setIsStreaming(true)
         setDownloadLinks([]) // Clear previous download links
 
         try {
+            const requestBody = {
+                prompt: userMessage,
+                project: project,
+                env: env
+            };
+            console.log('Request Body:', requestBody);
+
             const response = await fetch('http://localhost:8000/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({prompt: userMessage})
-            })
+                body: JSON.stringify(requestBody)
+            });
             if (!response.ok) throw new Error(`HTTP ${response.status}`)
             const {streamUrl} = await response.json()
 

@@ -25,6 +25,9 @@ export default function ChatInput({ input, setInput, onSend, isStreaming }) {
         ta.style.height = 'auto';
         ta.style.height = `${ta.scrollHeight}px`;
     };
+    const handleSend = () => {
+        onSend(input, project, env);
+    }
 
     return (
         <footer className="input-container">
@@ -62,7 +65,7 @@ export default function ChatInput({ input, setInput, onSend, isStreaming }) {
                         {/* Send button aligned right */}
                         <button
                             className={`send-button ${input.trim() && !isStreaming ? 'active' : 'disabled'}`}
-                            onClick={onSend}
+                            onClick={handleSend}
                             disabled={!input.trim() || isStreaming}
                         >
                             <Send size={16} />
