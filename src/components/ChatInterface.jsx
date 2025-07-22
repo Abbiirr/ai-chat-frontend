@@ -48,6 +48,13 @@ export default function ChatInterface() {
     const [downloadLinks, setDownloadLinks] = useState([])
     const scrollRef = useRef()
     const eventSourceRef = useRef()
+    const lastChunkRef = useRef('')
+
+    useEffect(() => {
+        return () => {
+            eventSourceRef.current?.close();
+        };
+    }, []);
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({behavior: 'smooth'})
@@ -93,7 +100,10 @@ export default function ChatInterface() {
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`)
             const {streamUrl} = await response.json()
-
+            // close any existing SSE connection
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+            }
             setMessages(m => [...m, {from: 'bot', text: '', isStreaming: true}])
             eventSourceRef.current = new EventSource(`http://localhost:8000${streamUrl}`)
 
@@ -114,6 +124,107 @@ export default function ChatInterface() {
                     parsed = rawData;
                 }
 
+                // 1) Handle "Extracted Parameters" specially
+                if (event === 'Extracted Parameters' && typeof parsed === 'object') {
+                    console.log('Extracted Parameters:', parsed)
+                    const {time_frame, domain, query_keys} = parsed.parameters
+                    const keywords = Array.isArray(query_keys)
+                        ? query_keys.join(', ')
+                        : query_keys
+
+                    // build the formatted chunk exactly like your regular events
+                    const chunk = [
+                        "I have found the following parameters from your request",
+                        `Time Frame: ${time_frame}`,
+                        `Domain: ${domain}`,
+                        `Keywords to search for: ${keywords}`
+                    ].join("\n") + "\n\n"
+
+                    // dedupe exactly like before
+                    if (chunk === lastChunkRef.current) return
+                    lastChunkRef.current = chunk
+
+                    // append to the last bot message
+                    setMessages(prev => {
+                        const copy = [...prev]
+                        const lastMsg = copy[copy.length - 1]
+                        if (lastMsg.from === 'bot') {
+                            lastMsg.text += chunk
+                        }
+                        return copy
+                    })
+
+                    return  // skip the rest of the handler
+                }
+
+                // ── NEW: Downloaded logs in file ──
+                if (event === 'Downloaded logs in file') {
+                    const chunk = 'Downloaded logs\n\n';
+                    if (chunk === lastChunkRef.current) return;
+                    lastChunkRef.current = chunk;
+                    setMessages(prev => {
+                        const copy = [...prev];
+                        const lastMsg = copy[copy.length - 1];
+                        if (lastMsg.from === 'bot') lastMsg.text += chunk;
+                        return copy;
+                    });
+                    return;
+                }
+
+                // ── NEW: Found trace id(s) ──
+                if (event === 'Found trace id(s)' && typeof parsed === 'object' && parsed.count != null) {
+                    const chunk = `Found ${parsed.count} requests\n\n`;
+                    if (chunk === lastChunkRef.current) return;
+                    lastChunkRef.current = chunk;
+                    setMessages(prev => {
+                        const copy = [...prev];
+                        const lastMsg = copy[copy.length - 1];
+                        if (lastMsg.from === 'bot') lastMsg.text += chunk;
+                        return copy;
+                    });
+                    return;
+                }
+
+                if (event === 'Compiled Request Traces') {
+                    const chunk = 'Compiled Request Traces\n\n';
+                    if (chunk === lastChunkRef.current) return;
+                    lastChunkRef.current = chunk;
+                    setMessages(prev => {
+                        const copy = [...prev];
+                        const lastMsg = copy[copy.length - 1];
+                        if (lastMsg.from === 'bot') lastMsg.text += chunk;
+                        return copy;
+                    });
+                    return;
+                }
+
+                // ── NEW: done ──
+                if (event === 'done') {
+                    // Prefer parsed.message, else map status:"complete" to "Analysis complete."
+                    let messageText = '';
+                    if (parsed && typeof parsed === 'object') {
+                        if (parsed.message) {
+                            messageText = parsed.message;
+                        } else if (parsed.status === 'complete') {
+                            messageText = 'Analysis complete.';
+                        }
+                    }
+                    // Fallback to rawData if neither field exists
+                    if (!messageText && typeof rawData === 'string') {
+                        messageText = rawData;
+                    }
+
+                    const chunk = messageText + '\n\n';
+                    if (chunk === lastChunkRef.current) return;
+                    lastChunkRef.current = chunk;
+                    setMessages(prev => {
+                        const copy = [...prev];
+                        const lastMsg = copy[copy.length - 1];
+                        if (lastMsg.from === 'bot') lastMsg.text += chunk;
+                        return copy;
+                    });
+                    return;
+                }
                 // 1) If it's the Compiled Summary, update links and bail out
                 if (event === 'Compiled Summary' && typeof parsed === 'object') {
                     console.log(parsed)
@@ -122,18 +233,24 @@ export default function ChatInterface() {
                 }
 
                 // 2) Otherwise, it’s a “regular” event: append it
-                setMessages(msgs => {
-                    const copy = [...msgs];
-                    if (copy.length) {
-                        copy[copy.length - 1].text +=
-                            `${event}\n${JSON.stringify(parsed, null, 2)}\n\n`;
-                    }
-                    return copy;
+                const chunk = `${event}\n${JSON.stringify(parsed, null, 2)}\n\n`
+                if (chunk === lastChunkRef.current) return
+                lastChunkRef.current = chunk
+                console.log('About to append to last message:', chunk)
+                setMessages(prev => {
+                    const lastIndex = prev.length - 1;
+                    const lastMsg = prev[lastIndex];
+                    if (lastMsg.from !== 'bot') return prev;
+                    return [
+                        ...prev.slice(0, lastIndex),
+                        {...lastMsg, text: lastMsg.text + chunk},
+                    ];
                 });
             };
 
 
             eventSourceRef.current.addEventListener('done', () => {
+                console.log('✅ SSE Done')
                 eventSourceRef.current.close()
                 setIsStreaming(false)
                 setMessages(m => m.map(msg => msg.isStreaming ? {...msg, isStreaming: false} : msg))
@@ -165,9 +282,11 @@ export default function ChatInterface() {
                     )}
 
                     {messages.map((message, index) => {
-                        const isLastBotMessage = message.from === 'bot' &&
-                            index === messages.length - 1 ||
-                            (index < messages.length - 1 && messages[index + 1].from === 'user')
+                        const isLastBotMessage =
+                            message.from === 'bot' && (
+                                index === messages.length - 1 ||
+                                (index < messages.length - 1 && messages[index + 1].from === 'user')
+                            )
 
                         return (
                             <ChatBubble
