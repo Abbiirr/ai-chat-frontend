@@ -49,10 +49,14 @@ export default function ChatInterface() {
     const scrollRef = useRef()
     const eventSourceRef = useRef()
     const lastChunkRef = useRef('')
+    const processedEventsRef = useRef(new Set()) // Track processed events
 
     useEffect(() => {
         return () => {
-            eventSourceRef.current?.close();
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+                eventSourceRef.current = null;
+            }
         };
     }, []);
 
@@ -80,6 +84,11 @@ export default function ChatInterface() {
     const sendMessage = async (userMessage, project, env) => {
         if (!input.trim() || isStreaming) return
         console.log(userMessage, project, env)
+
+        // Reset processed events for new message
+        processedEventsRef.current.clear();
+        lastChunkRef.current = '';
+
         setMessages(m => [...m, {from: 'user', text: userMessage}])
         setInput('')
         setIsStreaming(true)
@@ -93,30 +102,60 @@ export default function ChatInterface() {
             };
             console.log('Request Body:', requestBody);
 
+            // Close any existing SSE connection first
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+                eventSourceRef.current = null;
+            }
+
             const response = await fetch('http://localhost:8000/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(requestBody)
             });
+
             if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
             const {streamUrl} = await response.json()
-            // close any existing SSE connection
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-            }
+
             setMessages(m => [...m, {from: 'bot', text: '', isStreaming: true}])
+
             eventSourceRef.current = new EventSource(`http://localhost:8000${streamUrl}`)
 
-            eventSourceRef.current.onopen = () => console.log('✅ SSE Opened')
+            eventSourceRef.current.onopen = () => {
+                console.log('✅ SSE Opened')
+            }
+
             eventSourceRef.current.onerror = (e) => {
                 console.error('❌ SSE Error', e)
-                eventSourceRef.current.close()
+                if (eventSourceRef.current) {
+                    eventSourceRef.current.close()
+                    eventSourceRef.current = null
+                }
                 setIsStreaming(false)
                 setMessages(m => m.map(msg => msg.isStreaming ? {...msg, isStreaming: false} : msg))
             }
 
             eventSourceRef.current.onmessage = e => {
                 const {event, data: rawData} = parseEventMessage(e.data);
+
+                // Create a unique identifier for this event
+                const eventId = `${event}-${Date.now()}-${Math.random()}`;
+
+                // Skip if we've already processed this exact event content recently
+                const eventKey = `${event}-${rawData}`;
+                if (processedEventsRef.current.has(eventKey)) {
+                    console.log('Skipping duplicate event:', event);
+                    return;
+                }
+                processedEventsRef.current.add(eventKey);
+
+                // Clean up old processed events (keep only last 20)
+                if (processedEventsRef.current.size > 20) {
+                    const entries = Array.from(processedEventsRef.current);
+                    processedEventsRef.current = new Set(entries.slice(-10));
+                }
+
                 let parsed;
                 try {
                     parsed = JSON.parse(rawData);
@@ -124,7 +163,7 @@ export default function ChatInterface() {
                     parsed = rawData;
                 }
 
-                // 1) Handle "Extracted Parameters" specially
+                // Handle "Extracted Parameters" specially
                 if (event === 'Extracted Parameters' && typeof parsed === 'object') {
                     console.log('Extracted Parameters:', parsed)
                     const {time_frame, domain, query_keys} = parsed.parameters
@@ -132,7 +171,6 @@ export default function ChatInterface() {
                         ? query_keys.join(', ')
                         : query_keys
 
-                    // build the formatted chunk exactly like your regular events
                     const chunk = [
                         "I have found the following parameters from your request",
                         `Time Frame: ${time_frame}`,
@@ -140,46 +178,44 @@ export default function ChatInterface() {
                         `Keywords to search for: ${keywords}`
                     ].join("\n") + "\n\n"
 
-                    // dedupe exactly like before
-                    if (chunk === lastChunkRef.current) return
-                    lastChunkRef.current = chunk
-
-                    // append to the last bot message
+                    // Use functional update to prevent race conditions
                     setMessages(prev => {
                         const copy = [...prev]
                         const lastMsg = copy[copy.length - 1]
-                        if (lastMsg.from === 'bot') {
-                            lastMsg.text += chunk
+                        if (lastMsg && lastMsg.from === 'bot') {
+                            // Check if this content is already in the message
+                            if (!lastMsg.text.includes("I have found the following parameters")) {
+                                lastMsg.text += chunk
+                            }
                         }
                         return copy
                     })
-
-                    return  // skip the rest of the handler
+                    return
                 }
 
-                // ── NEW: Downloaded logs in file ──
+                // Handle "Downloaded logs in file"
                 if (event === 'Downloaded logs in file') {
                     const chunk = 'Downloaded logs\n\n';
-                    if (chunk === lastChunkRef.current) return;
-                    lastChunkRef.current = chunk;
                     setMessages(prev => {
                         const copy = [...prev];
                         const lastMsg = copy[copy.length - 1];
-                        if (lastMsg.from === 'bot') lastMsg.text += chunk;
+                        if (lastMsg && lastMsg.from === 'bot' && !lastMsg.text.includes('Downloaded logs')) {
+                            lastMsg.text += chunk;
+                        }
                         return copy;
                     });
                     return;
                 }
 
-                // ── NEW: Found trace id(s) ──
+                // Handle "Found trace id(s)"
                 if (event === 'Found trace id(s)' && typeof parsed === 'object' && parsed.count != null) {
                     const chunk = `Found ${parsed.count} requests\n\n`;
-                    if (chunk === lastChunkRef.current) return;
-                    lastChunkRef.current = chunk;
                     setMessages(prev => {
                         const copy = [...prev];
                         const lastMsg = copy[copy.length - 1];
-                        if (lastMsg.from === 'bot') lastMsg.text += chunk;
+                        if (lastMsg && lastMsg.from === 'bot' && !lastMsg.text.includes(`Found ${parsed.count} requests`)) {
+                            lastMsg.text += chunk;
+                        }
                         return copy;
                     });
                     return;
@@ -187,20 +223,19 @@ export default function ChatInterface() {
 
                 if (event === 'Compiled Request Traces') {
                     const chunk = 'Compiled Request Traces\n\n';
-                    if (chunk === lastChunkRef.current) return;
-                    lastChunkRef.current = chunk;
                     setMessages(prev => {
                         const copy = [...prev];
                         const lastMsg = copy[copy.length - 1];
-                        if (lastMsg.from === 'bot') lastMsg.text += chunk;
+                        if (lastMsg && lastMsg.from === 'bot' && !lastMsg.text.includes('Compiled Request Traces')) {
+                            lastMsg.text += chunk;
+                        }
                         return copy;
                     });
                     return;
                 }
 
-                // ── NEW: done ──
+                // Handle "done" event
                 if (event === 'done') {
-                    // Prefer parsed.message, else map status:"complete" to "Analysis complete."
                     let messageText = '';
                     if (parsed && typeof parsed === 'object') {
                         if (parsed.message) {
@@ -209,38 +244,43 @@ export default function ChatInterface() {
                             messageText = 'Analysis complete.';
                         }
                     }
-                    // Fallback to rawData if neither field exists
                     if (!messageText && typeof rawData === 'string') {
                         messageText = rawData;
                     }
 
                     const chunk = messageText + '\n\n';
-                    if (chunk === lastChunkRef.current) return;
-                    lastChunkRef.current = chunk;
                     setMessages(prev => {
                         const copy = [...prev];
                         const lastMsg = copy[copy.length - 1];
-                        if (lastMsg.from === 'bot') lastMsg.text += chunk;
+                        if (lastMsg && lastMsg.from === 'bot' && !lastMsg.text.includes(messageText)) {
+                            lastMsg.text += chunk;
+                        }
                         return copy;
                     });
                     return;
                 }
-                // 1) If it's the Compiled Summary, update links and bail out
+
+                // Handle "Compiled Summary"
                 if (event === 'Compiled Summary' && typeof parsed === 'object') {
-                    console.log(parsed)
+                    console.log('Compiled Summary:', parsed)
                     setDownloadLinks(buildDownloadLinks(parsed));
-                    return; // ← nothing is appended to your normal message flow
+                    return;
                 }
 
-                // 2) Otherwise, it’s a “regular” event: append it
+                // Handle other regular events
                 const chunk = `${event}\n${JSON.stringify(parsed, null, 2)}\n\n`
-                if (chunk === lastChunkRef.current) return
-                lastChunkRef.current = chunk
-                console.log('About to append to last message:', chunk)
+                console.log('Processing regular event:', event, chunk)
+
                 setMessages(prev => {
                     const lastIndex = prev.length - 1;
                     const lastMsg = prev[lastIndex];
-                    if (lastMsg.from !== 'bot') return prev;
+                    if (!lastMsg || lastMsg.from !== 'bot') return prev;
+
+                    // Check if this chunk is already in the message
+                    if (lastMsg.text.includes(chunk.trim())) {
+                        return prev;
+                    }
+
                     return [
                         ...prev.slice(0, lastIndex),
                         {...lastMsg, text: lastMsg.text + chunk},
@@ -248,13 +288,17 @@ export default function ChatInterface() {
                 });
             };
 
-
+            // Handle the 'done' event properly
             eventSourceRef.current.addEventListener('done', () => {
                 console.log('✅ SSE Done')
-                eventSourceRef.current.close()
+                if (eventSourceRef.current) {
+                    eventSourceRef.current.close()
+                    eventSourceRef.current = null
+                }
                 setIsStreaming(false)
                 setMessages(m => m.map(msg => msg.isStreaming ? {...msg, isStreaming: false} : msg))
             })
+
         } catch (err) {
             console.error('SendMessage Error', err)
             setIsStreaming(false)
