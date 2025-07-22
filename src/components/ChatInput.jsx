@@ -1,12 +1,13 @@
 // src/components/ChatInput.jsx
 import React, { useRef, useEffect, useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, FolderKanban , Server, GlobeLock } from 'lucide-react'; // Import different icons
 import ToolButton from './ToolButton';
 import './ChatInput.css';
 
 export default function ChatInput({ input, setInput, onSend, isStreaming }) {
     const [project, setProject] = useState('NCC');
     const [env, setEnv]       = useState('DEV');
+    const [domain, setDomain]       = useState('General');
     const textareaRef         = useRef(null);
 
     // Auto‑grow textarea on input change
@@ -26,7 +27,7 @@ export default function ChatInput({ input, setInput, onSend, isStreaming }) {
         ta.style.height = `${ta.scrollHeight}px`;
     };
     const handleSend = () => {
-        onSend(input, project, env);
+        onSend(input, project, env, domain);
     }
 
     return (
@@ -51,15 +52,25 @@ export default function ChatInput({ input, setInput, onSend, isStreaming }) {
                                 onSelect={setProject}
                                 disabled={isStreaming}
                                 title={`Project: ${project}`}
+                                icon={FolderKanban } // Pass FolderKanban  icon for project selector
                             />
                             <ToolButton
                                 options={['DEV', 'UAT', 'PROD']}
                                 onSelect={setEnv}
                                 disabled={isStreaming}
                                 title={`Env: ${env}`}
+                                icon={Server} // Pass Server icon for environment selector
+                            />
+                            <ToolButton
+                                options={['General', 'Transaction', 'Notification','OTP', 'Registration','User Info']}
+                                onSelect={setDomain}
+                                disabled={isStreaming}
+                                title={`Domain: ${domain}`}
+                                icon={GlobeLock } // Pass Server icon for environment selector
                             />
                             <span className="param-pill">{project}</span>
                             <span className="param-pill">{env}</span>
+                            <span className="param-pill">{domain}</span>
                         </div>
 
                         {/* Send button aligned right */}

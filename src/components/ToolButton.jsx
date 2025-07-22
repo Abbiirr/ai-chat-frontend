@@ -8,6 +8,7 @@ export default function ToolButton({
                                        onSelect = () => {},   // receives the selected option
                                        disabled,
                                        title = 'Settings',
+                                       icon = Settings2,      // NEW: Accept icon as prop
                                    }) {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
@@ -27,6 +28,9 @@ export default function ToolButton({
         if (!disabled) setIsOpen(open => !open);
     };
 
+    // Use the passed icon component
+    const IconComponent = icon;
+
     return (
         <div className="tool-button-container" ref={containerRef}>
             <button
@@ -36,7 +40,7 @@ export default function ToolButton({
                 disabled={disabled}
                 title={title}
             >
-                <Settings2 size={16} />
+                <IconComponent size={16} />
             </button>
 
             {isOpen && (

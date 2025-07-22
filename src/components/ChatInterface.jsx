@@ -81,7 +81,7 @@ export default function ChatInterface() {
         }
     }, [downloadLinks])
 
-    const sendMessage = async (userMessage, project, env) => {
+    const sendMessage = async (userMessage, project, env, domain) => {
         if (!input.trim() || isStreaming) return
         console.log(userMessage, project, env)
 
@@ -98,7 +98,8 @@ export default function ChatInterface() {
             const requestBody = {
                 prompt: userMessage,
                 project: project,
-                env: env
+                env: env,
+                domain: domain
             };
             console.log('Request Body:', requestBody);
 
