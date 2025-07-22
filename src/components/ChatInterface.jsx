@@ -5,7 +5,7 @@ import ChatInput from './ChatInput'
 import ChatBubble from './ChatBubble'
 
 function parseEventMessage(raw) {
-    const result = { event: '', data: '' };
+    const result = {event: '', data: ''};
     raw.trim().split(/\r?\n/).forEach(line => {
         const [prefix, ...rest] = line.split(': ');
         const value = rest.join(': ');
@@ -61,7 +61,7 @@ export default function ChatInterface() {
                 // Find the last bot message and add download links to it
                 for (let i = copy.length - 1; i >= 0; i--) {
                     if (copy[i].from === 'bot') {
-                        copy[i] = { ...copy[i], downloadLinks }
+                        copy[i] = {...copy[i], downloadLinks}
                         break
                     }
                 }
@@ -106,22 +106,32 @@ export default function ChatInterface() {
             }
 
             eventSourceRef.current.onmessage = e => {
-                const { event, data: rawData } = parseEventMessage(e.data)
-                let parsed
-                try { parsed = JSON.parse(rawData) } catch { parsed = rawData }
-
-                setMessages(msgs => {
-                    const copy = [...msgs]
-                    if (copy.length) {
-                        copy[copy.length - 1].text += `${event}\n${JSON.stringify(parsed, null, 2)}\n\n`
-                    }
-                    return copy
-                })
-
-                if (event === 'Compiled Summary' && typeof parsed === 'object') {
-                    setDownloadLinks(buildDownloadLinks(parsed))
+                const {event, data: rawData} = parseEventMessage(e.data);
+                let parsed;
+                try {
+                    parsed = JSON.parse(rawData);
+                } catch {
+                    parsed = rawData;
                 }
-            }
+
+                // 1) If it's the Compiled Summary, update links and bail out
+                if (event === 'Compiled Summary' && typeof parsed === 'object') {
+                    console.log(parsed)
+                    setDownloadLinks(buildDownloadLinks(parsed));
+                    return; // ← nothing is appended to your normal message flow
+                }
+
+                // 2) Otherwise, it’s a “regular” event: append it
+                setMessages(msgs => {
+                    const copy = [...msgs];
+                    if (copy.length) {
+                        copy[copy.length - 1].text +=
+                            `${event}\n${JSON.stringify(parsed, null, 2)}\n\n`;
+                    }
+                    return copy;
+                });
+            };
+
 
             eventSourceRef.current.addEventListener('done', () => {
                 eventSourceRef.current.close()
@@ -174,7 +184,7 @@ export default function ChatInterface() {
                 </div>
             </main>
 
-            <ChatInput input={input} setInput={setInput} onSend={sendMessage} isStreaming={isStreaming} />
+            <ChatInput input={input} setInput={setInput} onSend={sendMessage} isStreaming={isStreaming}/>
         </div>
     )
 }
