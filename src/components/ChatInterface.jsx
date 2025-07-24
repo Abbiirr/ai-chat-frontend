@@ -111,20 +111,29 @@ const handlers = {
     'Compiled Request Traces': createTextAppender(() =>
         'Compiled Request Traces'),
 
-    done: (parsed, raw, { setMessages, setIsStreaming, eventSourceRef }) => {
-        let text = typeof parsed === 'object'
-            ? parsed.message || (parsed.status === 'complete' && 'Analysis complete.')
-            : raw;
-        text = text || raw;
-        // append as above...
+    'done': (parsed, raw, { setMessages, setIsStreaming, eventSourceRef }) => {
+        // 1) append the final bit of text…
         setMessages(prev => {
             const last = prev[prev.length - 1];
-            if (last?.from === 'bot' && !last.text.includes(text)) {
-                return [...prev.slice(0, -1), { ...last, text: last.text + text + '\n\n' }];
+            if (last?.from === 'bot' && !last.text.includes(raw)) {
+                return [
+                    ...prev.slice(0, -1),
+                    { ...last, text: last.text + (parsed.message || raw) + '\n\n' }
+                ];
             }
             return prev;
         });
-        // then also close the stream
+
+        // 2) turn off the “isStreaming” flag on any bot bubble
+        setMessages(prev =>
+            prev.map(msg =>
+                msg.from === 'bot' && msg.isStreaming
+                    ? { ...msg, isStreaming: false }
+                    : msg
+            )
+        );
+
+        // 3) close your SSE and clear the component‑level flag
         if (eventSourceRef.current) {
             eventSourceRef.current.close();
             eventSourceRef.current = null;
