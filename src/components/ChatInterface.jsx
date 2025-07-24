@@ -42,6 +42,23 @@ function buildDownloadLinks(payload) {
 
     return links
 }
+
+// Helper to update the last bot message with download links
+const updateLastBotMessageWithLinks = (messages, newLinks) => {
+    const copy = [...messages];
+    for (let i = copy.length - 1; i >= 0; i--) {
+        if (copy[i].from === 'bot') {
+            const existingLinks = copy[i].downloadLinks || [];
+            copy[i] = {
+                ...copy[i],
+                downloadLinks: [...existingLinks, ...newLinks]
+            };
+            break;
+        }
+    }
+    return copy;
+};
+
 // outside your component (or at top of ChatInterface.jsx)
 const createTextAppender = (templateFn) => (parsed, raw, { setMessages }) => {
     const chunk = templateFn(parsed, raw) + "\n\n";
@@ -53,7 +70,8 @@ const createTextAppender = (templateFn) => (parsed, raw, { setMessages }) => {
         return prev;
     });
 };
-// catch‑all for any event you haven’t explicitly handled:
+
+// catch‑all for any event you haven't explicitly handled:
 const defaultHandler = (parsed, raw, { setMessages, rawEvent }) => {
     const header = `${rawEvent}`;
     const body = typeof parsed === 'object'
@@ -99,7 +117,13 @@ const handlers = {
             : raw;
         text = text || raw;
         // append as above...
-        handlers['done'] = createTextAppender(() => text);
+        setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last?.from === 'bot' && !last.text.includes(text)) {
+                return [...prev.slice(0, -1), { ...last, text: last.text + text + '\n\n' }];
+            }
+            return prev;
+        });
         // then also close the stream
         if (eventSourceRef.current) {
             eventSourceRef.current.close();
@@ -108,10 +132,12 @@ const handlers = {
         setIsStreaming(false);
     },
 
-    'Compiled Summary': (parsed, raw, { setDownloadLinks, buildDownloadLinks }) => {
-        setDownloadLinks(buildDownloadLinks(parsed));
+    'Compiled Summary': (parsed, raw, { setMessages, buildDownloadLinks }) => {
+        const links = buildDownloadLinks(parsed);
+        setMessages(prev => updateLastBotMessageWithLinks(prev, links));
     },
-    'Verification Results': (parsed, raw, { setMessages, setDownloadLinks }) => {
+
+    'Verification Results': (parsed, raw, { setMessages }) => {
         console.log('Verification Results raw:', raw);
         console.log('Verification Results parsed:', parsed);
 
@@ -121,7 +147,7 @@ const handlers = {
         // Extract only the summary part (before "Relevant files:")
         const summaryText = verificationText.split('Relevant files:')[0].trim();
 
-        // Extract filenames using regex - this handles the format you showed
+        // Extract filenames using regex
         const relevantMatch = verificationText.match(/Relevant files:\s*\[(.*?)\]/);
         const lessRelevantMatch = verificationText.match(/Less Relevant Files:\s*\[(.*?)\]/);
         const notRelevantMatch = verificationText.match(/Not Relevant Files:\s*\[(.*?)\]/);
@@ -152,32 +178,26 @@ const handlers = {
             type
         }));
 
-        // Add links to state
-        setDownloadLinks(old => [...old, ...downloadLinks]);
-
-        // Display only the summary text
+        // Update messages with both text and download links
         setMessages(prev => {
             const last = prev[prev.length - 1];
             if (last?.from === 'bot') {
-                return [
+                const updatedMessages = [
                     ...prev.slice(0, -1),
                     { ...last, text: last.text + summaryText + '\n\n' }
                 ];
+                // Then add the download links to the same message
+                return updateLastBotMessageWithLinks(updatedMessages, downloadLinks);
             }
             return prev;
         });
     },
-
-
-
 };
-
 
 export default function ChatInterface() {
     const [messages, setMessages] = useState([])
     const [input, setInput] = useState('')
     const [isStreaming, setIsStreaming] = useState(false)
-    const [downloadLinks, setDownloadLinks] = useState([])
     const scrollRef = useRef()
     const eventSourceRef = useRef()
     const lastChunkRef = useRef('')
@@ -194,24 +214,7 @@ export default function ChatInterface() {
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({behavior: 'smooth'})
-    }, [messages, downloadLinks])
-
-    // Update the last bot message with download links when they're available
-    useEffect(() => {
-        if (downloadLinks.length > 0) {
-            setMessages(msgs => {
-                const copy = [...msgs]
-                // Find the last bot message and add download links to it
-                for (let i = copy.length - 1; i >= 0; i--) {
-                    if (copy[i].from === 'bot') {
-                        copy[i] = {...copy[i], downloadLinks}
-                        break
-                    }
-                }
-                return copy
-            })
-        }
-    }, [downloadLinks])
+    }, [messages])
 
     const sendMessage = async (userMessage, project, env, domain) => {
         if (!input.trim() || isStreaming) return
@@ -224,7 +227,6 @@ export default function ChatInterface() {
         setMessages(m => [...m, {from: 'user', text: userMessage}])
         setInput('')
         setIsStreaming(true)
-        setDownloadLinks([]) // Clear previous download links
 
         try {
             const requestBody = {
@@ -251,7 +253,7 @@ export default function ChatInterface() {
 
             const {streamUrl} = await response.json()
 
-            setMessages(m => [...m, {from: 'bot', text: '', isStreaming: true}])
+            setMessages(m => [...m, {from: 'bot', text: '', isStreaming: true, downloadLinks: []}])
 
             eventSourceRef.current = new EventSource(`http://localhost:8000${streamUrl}`)
 
@@ -283,14 +285,12 @@ export default function ChatInterface() {
                 console.log(rawEvent)
                 handler(parsed, rawData, {
                     setMessages,
-                    setDownloadLinks,
                     setIsStreaming,
                     eventSourceRef,
                     buildDownloadLinks,
                     rawEvent
                 });
             };
-
 
             // Handle the 'done' event properly
             eventSourceRef.current.addEventListener('done', () => {
@@ -330,19 +330,12 @@ export default function ChatInterface() {
                     )}
 
                     {messages.map((message, index) => {
-                        const isLastBotMessage =
-                            message.from === 'bot' && (
-                                index === messages.length - 1 ||
-                                (index < messages.length - 1 && messages[index + 1].from === 'user')
-                            )
-
                         return (
                             <ChatBubble
                                 key={index}
                                 message={message}
                                 index={index}
                                 downloadLinks={message.downloadLinks || []}
-                                isLastBotMessage={isLastBotMessage}
                             />
                         )
                     })}

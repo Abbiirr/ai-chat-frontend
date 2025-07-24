@@ -72,10 +72,140 @@
     font-size: 0.875rem;
 }
 
-.download-section {
-    margin-top: 1rem;
-    padding-top: 1rem;
+/* Embedded Downloads Styles */
+.embedded-downloads {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.download-category {
+    margin-bottom: 0.75rem;
+}
+
+.download-category:last-child {
+    margin-bottom: 0;
+}
+
+.category-header {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.download-links-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.download-link-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    text-decoration: none;
+    font-size: 0.75rem;
+    color: #374151;
+    transition: all 0.2s ease;
+    max-width: 200px;
+    overflow: hidden;
+}
+
+.download-link-pill:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.link-icon {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+}
+
+.link-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Category-specific colors */
+.relevant-links .category-header {
+    color: #059669;
+}
+
+.relevant-links .download-link-pill {
+    border-color: #86efac;
+    background: #f0fdf4;
+}
+
+.relevant-links .download-link-pill:hover {
+    background: #dcfce7;
+    border-color: #4ade80;
+}
+
+.less-relevant-links .category-header {
+    color: #d97706;
+}
+
+.less-relevant-links .download-link-pill {
+    border-color: #fcd34d;
+    background: #fffbeb;
+}
+
+.less-relevant-links .download-link-pill:hover {
+    background: #fef3c7;
+    border-color: #fbbf24;
+}
+
+.not-relevant-links .category-header {
+    color: #dc2626;
+}
+
+.not-relevant-links .download-link-pill {
+    border-color: #fca5a5;
+    background: #fef2f2;
+}
+
+.not-relevant-links .download-link-pill:hover {
+    background: #fee2e2;
+    border-color: #f87171;
+}
+
+.trace-analysis-links .category-header {
+    color: #2563eb;
+}
+
+.trace-analysis-links .download-link-pill {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+.trace-analysis-links .download-link-pill:hover {
+    background: #dbeafe;
+    border-color: #60a5fa;
+}
+
+.master-summary-links .category-header {
+    color: #7c3aed;
+}
+
+.master-summary-links .download-link-pill {
+    border-color: #c4b5fd;
+    background: #f5f3ff;
+}
+
+.master-summary-links .download-link-pill:hover {
+    background: #ede9fe;
+    border-color: #a78bfa;
 }
 
 .typing-indicator {
@@ -133,6 +263,96 @@
     .bot-bubble .bubble-message {
         background-color: #374151;
         color: #e5e7eb;
+    }
+
+    .embedded-downloads {
+        border-top-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .category-header {
+        color: #e5e7eb;
+    }
+
+    .download-link-pill {
+        background: #4b5563;
+        border-color: #6b7280;
+        color: #e5e7eb;
+    }
+
+    .download-link-pill:hover {
+        background: #6b7280;
+        border-color: #9ca3af;
+    }
+
+    /* Dark mode category colors */
+    .relevant-links .category-header {
+        color: #34d399;
+    }
+
+    .relevant-links .download-link-pill {
+        border-color: #065f46;
+        background: #064e3b;
+    }
+
+    .relevant-links .download-link-pill:hover {
+        background: #065f46;
+        border-color: #059669;
+    }
+
+    .less-relevant-links .category-header {
+        color: #fbbf24;
+    }
+
+    .less-relevant-links .download-link-pill {
+        border-color: #78350f;
+        background: #451a03;
+    }
+
+    .less-relevant-links .download-link-pill:hover {
+        background: #78350f;
+        border-color: #92400e;
+    }
+
+    .not-relevant-links .category-header {
+        color: #f87171;
+    }
+
+    .not-relevant-links .download-link-pill {
+        border-color: #7f1d1d;
+        background: #450a0a;
+    }
+
+    .not-relevant-links .download-link-pill:hover {
+        background: #7f1d1d;
+        border-color: #991b1b;
+    }
+
+    .trace-analysis-links .category-header {
+        color: #60a5fa;
+    }
+
+    .trace-analysis-links .download-link-pill {
+        border-color: #1e3a8a;
+        background: #1e293b;
+    }
+
+    .trace-analysis-links .download-link-pill:hover {
+        background: #1e3a8a;
+        border-color: #1d4ed8;
+    }
+
+    .master-summary-links .category-header {
+        color: #a78bfa;
+    }
+
+    .master-summary-links .download-link-pill {
+        border-color: #4c1d95;
+        background: #2e1065;
+    }
+
+    .master-summary-links .download-link-pill:hover {
+        background: #4c1d95;
+        border-color: #5b21b6;
     }
 
     .typing-indicator span {
