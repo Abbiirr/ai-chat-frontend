@@ -40,6 +40,63 @@ function buildDownloadLinks(payload) {
 
     return links
 }
+// outside your component (or at top of ChatInterface.jsx)
+const createTextAppender = (templateFn) => (parsed, raw, { setMessages }) => {
+    const chunk = templateFn(parsed, raw) + "\n\n";
+    setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.from === 'bot' && !last.text.includes(chunk.trim())) {
+            return [...prev.slice(0, -1), { ...last, text: last.text + chunk }];
+        }
+        return prev;
+    });
+};
+
+const handlers = {
+    'Extracted Parameters': createTextAppender(({ parameters }) => {
+        const { time_frame, domain, query_keys } = parameters;
+        const keywords = Array.isArray(query_keys) ? query_keys.join(', ') : query_keys;
+        return [
+            "I have found the following parameters from your request",
+            `Time Frame: ${time_frame}`,
+            `Domain: ${domain}`,
+            `Keywords to search for: ${keywords}`
+        ].join("\n");
+    }),
+
+    'Downloaded logs in file': createTextAppender(() => 'Downloaded logs'),
+
+    'Found trace id(s)': createTextAppender(parsed =>
+        `Found ${parsed.count} requests`),
+
+    'Compiled Request Traces': createTextAppender(() =>
+        'Compiled Request Traces'),
+
+    done: (parsed, raw, { setMessages, setIsStreaming, eventSourceRef }) => {
+        let text = typeof parsed === 'object'
+            ? parsed.message || (parsed.status === 'complete' && 'Analysis complete.')
+            : raw;
+        text = text || raw;
+        // append as above...
+        handlers['done'] = createTextAppender(() => text);
+        // then also close the stream
+        if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+            eventSourceRef.current = null;
+        }
+        setIsStreaming(false);
+    },
+
+    'Compiled Summary': (parsed, raw, { setDownloadLinks, buildDownloadLinks }) => {
+        setDownloadLinks(buildDownloadLinks(parsed));
+    }
+};
+
+// default fallback
+const defaultHandler = (parsed, raw, { setMessages }) => {
+    const chunk = `${rawEvent}\n${JSON.stringify(parsed, null, 2)}` + "\n\n";
+    // append like createTextAppender
+};
 
 export default function ChatInterface() {
     const [messages, setMessages] = useState([])
@@ -138,156 +195,25 @@ export default function ChatInterface() {
             }
 
             eventSourceRef.current.onmessage = e => {
-                const {event, data: rawData} = parseEventMessage(e.data);
-
-                // Create a unique identifier for this event
-                const eventId = `${event}-${Date.now()}-${Math.random()}`;
-
-                // Skip if we've already processed this exact event content recently
-                const eventKey = `${event}-${rawData}`;
-                if (processedEventsRef.current.has(eventKey)) {
-                    console.log('Skipping duplicate event:', event);
-                    return;
-                }
+                const { event: rawEvent, data: rawData } = parseEventMessage(e.data);
+                const eventKey = `${rawEvent}-${rawData}`;
+                if (processedEventsRef.current.has(eventKey)) return;
                 processedEventsRef.current.add(eventKey);
 
-                // Clean up old processed events (keep only last 20)
-                if (processedEventsRef.current.size > 20) {
-                    const entries = Array.from(processedEventsRef.current);
-                    processedEventsRef.current = new Set(entries.slice(-10));
-                }
-
                 let parsed;
-                try {
-                    parsed = JSON.parse(rawData);
-                } catch {
-                    parsed = rawData;
-                }
+                try { parsed = JSON.parse(rawData) } catch { parsed = rawData }
 
-                // Handle "Extracted Parameters" specially
-                if (event === 'Extracted Parameters' && typeof parsed === 'object') {
-                    console.log('Extracted Parameters:', parsed)
-                    const {time_frame, domain, query_keys} = parsed.parameters
-                    const keywords = Array.isArray(query_keys)
-                        ? query_keys.join(', ')
-                        : query_keys
-
-                    const chunk = [
-                        "I have found the following parameters from your request",
-                        `Time Frame: ${time_frame}`,
-                        `Domain: ${domain}`,
-                        `Keywords to search for: ${keywords}`
-                    ].join("\n") + "\n\n"
-
-                    // Use functional update to prevent race conditions
-                    setMessages(prev => {
-                        const copy = [...prev]
-                        const lastMsg = copy[copy.length - 1]
-                        if (lastMsg && lastMsg.from === 'bot') {
-                            // Check if this content is already in the message
-                            if (!lastMsg.text.includes("I have found the following parameters")) {
-                                lastMsg.text += chunk
-                            }
-                        }
-                        return copy
-                    })
-                    return
-                }
-
-                // Handle "Downloaded logs in file"
-                if (event === 'Downloaded logs in file') {
-                    const chunk = 'Downloaded logs\n\n';
-                    setMessages(prev => {
-                        const copy = [...prev];
-                        const lastMsg = copy[copy.length - 1];
-                        if (lastMsg && lastMsg.from === 'bot' && !lastMsg.text.includes('Downloaded logs')) {
-                            lastMsg.text += chunk;
-                        }
-                        return copy;
-                    });
-                    return;
-                }
-
-                // Handle "Found trace id(s)"
-                if (event === 'Found trace id(s)' && typeof parsed === 'object' && parsed.count != null) {
-                    const chunk = `Found ${parsed.count} requests\n\n`;
-                    setMessages(prev => {
-                        const copy = [...prev];
-                        const lastMsg = copy[copy.length - 1];
-                        if (lastMsg && lastMsg.from === 'bot' && !lastMsg.text.includes(`Found ${parsed.count} requests`)) {
-                            lastMsg.text += chunk;
-                        }
-                        return copy;
-                    });
-                    return;
-                }
-
-                if (event === 'Compiled Request Traces') {
-                    const chunk = 'Compiled Request Traces\n\n';
-                    setMessages(prev => {
-                        const copy = [...prev];
-                        const lastMsg = copy[copy.length - 1];
-                        if (lastMsg && lastMsg.from === 'bot' && !lastMsg.text.includes('Compiled Request Traces')) {
-                            lastMsg.text += chunk;
-                        }
-                        return copy;
-                    });
-                    return;
-                }
-
-                // Handle "done" event
-                if (event === 'done') {
-                    let messageText = '';
-                    if (parsed && typeof parsed === 'object') {
-                        if (parsed.message) {
-                            messageText = parsed.message;
-                        } else if (parsed.status === 'complete') {
-                            messageText = 'Analysis complete.';
-                        }
-                    }
-                    if (!messageText && typeof rawData === 'string') {
-                        messageText = rawData;
-                    }
-
-                    const chunk = messageText + '\n\n';
-                    setMessages(prev => {
-                        const copy = [...prev];
-                        const lastMsg = copy[copy.length - 1];
-                        if (lastMsg && lastMsg.from === 'bot' && !lastMsg.text.includes(messageText)) {
-                            lastMsg.text += chunk;
-                        }
-                        return copy;
-                    });
-                    return;
-                }
-
-                // Handle "Compiled Summary"
-                if (event === 'Compiled Summary' && typeof parsed === 'object') {
-                    console.log('Compiled Summary:', parsed)
-                    setDownloadLinks(buildDownloadLinks(parsed));
-                    return;
-                }
-
-                // Handle other regular events
-                const chunk = `${event}\n${JSON.stringify(parsed, null, 2)}\n\n`
-                console.log('Processing regular event:', event, chunk)
-
-                setMessages(prev => {
-                    const lastIndex = prev.length - 1;
-                    const lastMsg = prev[lastIndex];
-                    if (!lastMsg || lastMsg.from !== 'bot') return prev;
-
-                    // Check if this chunk is already in the message
-                    if (lastMsg.text.includes(chunk.trim())) {
-                        return prev;
-                    }
-
-                    return [
-                        ...prev.slice(0, lastIndex),
-                        {...lastMsg, text: lastMsg.text + chunk},
-                    ];
+                // Look up and invoke the handler
+                const handler = handlers[rawEvent] || defaultHandler;
+                handler(parsed, rawData, {
+                    setMessages,
+                    setDownloadLinks,
+                    setIsStreaming,
+                    eventSourceRef,
+                    buildDownloadLinks
                 });
             };
+
 
             // Handle the 'done' event properly
             eventSourceRef.current.addEventListener('done', () => {
