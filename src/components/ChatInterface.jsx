@@ -5,6 +5,7 @@ import ChatInput from './ChatInput'
 import ChatBubble from './ChatBubble'
 
 function parseEventMessage(raw) {
+    console.log(raw)
     const result = {event: '', data: ''};
     raw.trim().split(/\r?\n/).forEach(line => {
         const [prefix, ...rest] = line.split(': ');
@@ -12,6 +13,7 @@ function parseEventMessage(raw) {
         if (prefix === 'event') result.event = value;
         else if (prefix === 'data') result.data += value;
     });
+    console.log(result);
     return result;
 }
 
@@ -47,6 +49,25 @@ const createTextAppender = (templateFn) => (parsed, raw, { setMessages }) => {
         const last = prev[prev.length - 1];
         if (last?.from === 'bot' && !last.text.includes(chunk.trim())) {
             return [...prev.slice(0, -1), { ...last, text: last.text + chunk }];
+        }
+        return prev;
+    });
+};
+// catch‑all for any event you haven’t explicitly handled:
+const defaultHandler = (parsed, raw, { setMessages, rawEvent }) => {
+    const header = `${rawEvent}`;
+    const body = typeof parsed === 'object'
+        ? JSON.stringify(parsed, null, 2)
+        : parsed;
+    const chunk = [ header, body ].join('\n') + '\n\n';
+
+    setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.from === 'bot' && !last.text.includes(chunk.trim())) {
+            return [
+                ...prev.slice(0, -1),
+                { ...last, text: last.text + chunk }
+            ];
         }
         return prev;
     });
@@ -89,14 +110,68 @@ const handlers = {
 
     'Compiled Summary': (parsed, raw, { setDownloadLinks, buildDownloadLinks }) => {
         setDownloadLinks(buildDownloadLinks(parsed));
-    }
+    },
+    'Verification Results': (parsed, raw, { setMessages, setDownloadLinks }) => {
+        console.log('Verification Results raw:', raw);
+        console.log('Verification Results parsed:', parsed);
+
+        // Use the raw string data directly since it contains the full message
+        const verificationText = typeof parsed === 'string' ? parsed : raw;
+
+        // Extract only the summary part (before "Relevant files:")
+        const summaryText = verificationText.split('Relevant files:')[0].trim();
+
+        // Extract filenames using regex - this handles the format you showed
+        const relevantMatch = verificationText.match(/Relevant files:\s*\[(.*?)\]/);
+        const lessRelevantMatch = verificationText.match(/Less Relevant Files:\s*\[(.*?)\]/);
+        const notRelevantMatch = verificationText.match(/Not Relevant Files:\s*\[(.*?)\]/);
+
+        // Helper function to parse file arrays
+        const parseFiles = (match) => {
+            if (!match || !match[1] || match[1].trim() === '') return [];
+            return match[1]
+                .split(',')
+                .map(f => f.trim().replace(/['"]/g, ''))
+                .filter(f => f.length > 0);
+        };
+
+        const relevantFiles = parseFiles(relevantMatch);
+        const lessRelevantFiles = parseFiles(lessRelevantMatch);
+        const notRelevantFiles = parseFiles(notRelevantMatch);
+
+        // Create download links
+        const allFiles = [
+            ...relevantFiles.map(name => ({ name, type: 'relevant' })),
+            ...lessRelevantFiles.map(name => ({ name, type: 'less_relevant' })),
+            ...notRelevantFiles.map(name => ({ name, type: 'not_relevant' }))
+        ];
+
+        const downloadLinks = allFiles.map(({ name, type }) => ({
+            name,
+            url: `http://localhost:8000/download/?filename=${encodeURIComponent(name)}`,
+            type
+        }));
+
+        // Add links to state
+        setDownloadLinks(old => [...old, ...downloadLinks]);
+
+        // Display only the summary text
+        setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last?.from === 'bot') {
+                return [
+                    ...prev.slice(0, -1),
+                    { ...last, text: last.text + summaryText + '\n\n' }
+                ];
+            }
+            return prev;
+        });
+    },
+
+
+
 };
 
-// default fallback
-const defaultHandler = (parsed, raw, { setMessages }) => {
-    const chunk = `${rawEvent}\n${JSON.stringify(parsed, null, 2)}` + "\n\n";
-    // append like createTextAppender
-};
 
 export default function ChatInterface() {
     const [messages, setMessages] = useState([])
@@ -205,12 +280,14 @@ export default function ChatInterface() {
 
                 // Look up and invoke the handler
                 const handler = handlers[rawEvent] || defaultHandler;
+                console.log(rawEvent)
                 handler(parsed, rawData, {
                     setMessages,
                     setDownloadLinks,
                     setIsStreaming,
                     eventSourceRef,
-                    buildDownloadLinks
+                    buildDownloadLinks,
+                    rawEvent
                 });
             };
 
