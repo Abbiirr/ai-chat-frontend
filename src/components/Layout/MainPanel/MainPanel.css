@@ -1,0 +1,3 @@
+.main-panel { padding: 1rem; flex: 1; }
+.conversation { min-height: 300px; }
+.conversation-empty { color: #666 }

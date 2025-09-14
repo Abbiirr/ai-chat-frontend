@@ -1,0 +1,5 @@
+.log-viewer { display:flex; gap:1rem }
+.log-table { width:100%; border-collapse: collapse }
+.log-table th, .log-table td { border: 1px solid #eee; padding: 0.25rem 0.5rem }
+.parsed-view { flex:1 }
+.summary-view { width: 220px }

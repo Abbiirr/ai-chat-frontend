@@ -1,0 +1,6 @@
+.message { margin: 0.5rem 0 }
+.message.bot .message-text { background:#f1f1f1 }
+.message.user .message-text { background:#d1efff }
+.message-text { padding: 0.5rem; border-radius: 6px }
+.message-input { display:flex; gap:0.5rem }
+.message-input input { flex:1 }

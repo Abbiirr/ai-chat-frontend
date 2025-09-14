@@ -1,5 +1,4 @@
 import {useState, useRef, useEffect} from 'react'
-import {Send} from 'lucide-react'
 import './ChatInterface.css'
 import ChatInput from './ChatInput'
 import ChatBubble from './ChatBubble'
@@ -58,6 +57,11 @@ const updateLastBotMessageWithLinks = (messages, newLinks) => {
     }
     return copy;
 };
+
+// Helper to clear streaming flags from messages
+const clearStreamingFlags = (messages) => messages.map(msg =>
+    msg.from === 'bot' && msg.isStreaming ? { ...msg, isStreaming: false } : msg
+);
 
 // outside your component (or at top of ChatInterface.jsx)
 const createTextAppender = (templateFn) => (parsed, raw, { setMessages }) => {
@@ -125,13 +129,7 @@ const handlers = {
         });
 
         // 2) turn off the “isStreaming” flag on any bot bubble
-        setMessages(prev =>
-            prev.map(msg =>
-                msg.from === 'bot' && msg.isStreaming
-                    ? { ...msg, isStreaming: false }
-                    : msg
-            )
-        );
+        setMessages(prev => clearStreamingFlags(prev));
 
         // 3) close your SSE and clear the component‑level flag
         if (eventSourceRef.current) {
@@ -163,8 +161,9 @@ const handlers = {
 
         // Helper function to parse file arrays
         const parseFiles = (match) => {
-            if (!match || !match[1] || match[1].trim() === '') return [];
-            return match[1]
+            const content = match?.[1];
+            if (!content || content.trim() === '') return [];
+            return content
                 .split(',')
                 .map(f => f.trim().replace(/['"]/g, ''))
                 .filter(f => f.length > 0);
@@ -277,7 +276,7 @@ export default function ChatInterface() {
                     eventSourceRef.current = null
                 }
                 setIsStreaming(false)
-                setMessages(m => m.map(msg => msg.isStreaming ? {...msg, isStreaming: false} : msg))
+                setMessages(m => clearStreamingFlags(m))
             }
 
             eventSourceRef.current.onmessage = e => {
@@ -339,9 +338,10 @@ export default function ChatInterface() {
                     )}
 
                     {messages.map((message, index) => {
+                        const key = message.id ?? `${message.from}-${index}-${message.text?.slice(0,20)}`;
                         return (
                             <ChatBubble
-                                key={index}
+                                key={key}
                                 message={message}
                                 index={index}
                                 downloadLinks={message.downloadLinks || []}

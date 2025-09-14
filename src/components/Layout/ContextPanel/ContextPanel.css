@@ -1,0 +1,4 @@
+.context-panel { width: 260px; padding: 1rem; border-left: 1px solid #eee }
+.quick-tools { display:flex; gap:0.5rem; margin-bottom:1rem }
+.trace-details h3 { margin: 0 0 0.5rem 0 }
+.muted { color: #777 }

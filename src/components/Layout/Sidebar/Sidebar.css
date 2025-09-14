@@ -1,0 +1,4 @@
+.sidebar { padding: 1rem; border-right: 1px solid #eee; }
+.sidebar-header { font-weight: 700; margin-bottom: 0.5rem }
+.chat-list { list-style: none; padding: 0; margin: 0 }
+.chat-list-item { padding: 0.4rem 0; cursor: pointer }

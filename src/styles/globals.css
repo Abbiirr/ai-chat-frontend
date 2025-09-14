@@ -1,0 +1,5 @@
+* { box-sizing: border-box }
+body { margin:0; font-family: Inter, system-ui, sans-serif }
+.btn { padding: 0.4rem 0.6rem; border-radius: 4px }
+.badge { background:#eee; padding:0.15rem 0.4rem; border-radius: 4px }
+.muted { color: #777 }
