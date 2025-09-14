@@ -1,0 +1,53 @@
+/* components/Header/Header.css */
+
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: #1a1d29;
+  border-bottom: 1px solid #2a2d3a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  z-index: 100;
+}
+
+.header-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #e4e7eb;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.header-btn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #2a2d3a;
+  color: #e4e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.header-btn:hover {
+  background: #2a2d3a;
+}
+
+.header-btn.primary {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.header-btn.primary:hover {
+  background: #2563eb;
+}

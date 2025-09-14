@@ -1,7 +1,7 @@
 // store/chatStore.js
 import { create } from "zustand";
 
-export const useChatStore = create((set, _get) => ({
+export const useChatStore = create((set) => ({
   // State
   conversations: [],
   activeConversationId: null,

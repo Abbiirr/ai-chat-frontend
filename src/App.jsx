@@ -1,39 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { useChatStore } from "./store/chatStore";
 import { useChat } from "./hooks/useChat";
-
-// Simplified components for now - will be replaced with new UI
-const Sidebar = ({ conversations, activeId, onSelect }) => (
-  <div className="sidebar">
-    <div className="sidebar-header">
-      <h3>Chats</h3>
-    </div>
-    <div className="chat-list">
-      {conversations.map((conv) => (
-        <div
-          key={conv.id}
-          className={`chat-item ${conv.id === activeId ? "active" : ""}`}
-          onClick={() => onSelect(conv.id)}
-        >
-          <div className="chat-title">{conv.title}</div>
-          <div className="chat-time">
-            {new Date(conv.timestamp).toLocaleTimeString()}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
+import LeftSidebar from "./components/Sidebar/LeftSidebar";
+import RightSidebar from "./components/Sidebar/RightSidebar";
+import PropTypes from "prop-types";
 
 const MainPanel = ({ messages, onSend, isStreaming }) => {
-  const [input, setInput] = React.useState("");
-  const [project, setProject] = React.useState("NCC");
-  const [env, setEnv] = React.useState("DEV");
-  const [domain, setDomain] = React.useState("General");
+  const [input, setInput] = useState("");
 
   const handleSend = () => {
     if (input.trim()) {
-      onSend(input, project, env, domain);
+      onSend(input);
       setInput("");
     }
   };
@@ -43,7 +20,7 @@ const MainPanel = ({ messages, onSend, isStreaming }) => {
       <div className="conversation">
         <div className="messages">
           {messages.map((msg, idx) => (
-            <div key={idx} className={`message ${msg.from}`}>
+            <div key={msg.id ?? idx} className={`message ${msg.from}`}>
               <div className="message-content">{msg.text}</div>
               {msg.isStreaming && <span className="typing-indicator">...</span>}
             </div>
@@ -66,107 +43,74 @@ const MainPanel = ({ messages, onSend, isStreaming }) => {
   );
 };
 
-const ContextPanel = ({ trace, details }) => (
-  <div className="context-panel">
-    <h3>Context</h3>
-    {trace && (
-      <div className="trace-info">
-        <div className="info-item">
-          <span>Selected Trace:</span>
-          <strong>{trace}</strong>
-        </div>
-        {details && (
-          <div className="trace-details">
-            <pre>{JSON.stringify(details, null, 2)}</pre>
-          </div>
-        )}
-      </div>
-    )}
-  </div>
-);
+MainPanel.propTypes = {
+  messages: PropTypes.array,
+  onSend: PropTypes.func,
+  isStreaming: PropTypes.bool,
+};
 
 export default function App() {
   const { messages, isStreaming, currentTrace, sendMessage } = useChat();
 
+  // Sidebar toggle states
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+
   const {
     conversations,
     activeConversationId,
-    isSidebarOpen,
-    isContextPanelOpen,
     setActiveConversation,
     addConversation,
   } = useChatStore();
 
   // Initialize with a default conversation
+  const initRef = React.useRef(false);
   React.useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
     if (conversations.length === 0) {
       const defaultConv = {
         id: "1",
         title: "New Chat",
         messages: [],
+        time: "4:35:58 PM",
       };
       addConversation(defaultConv);
       setActiveConversation("1");
     }
-  }, []);
+  }, [conversations.length, addConversation, setActiveConversation]);
+
+  // Format conversations for sidebar
+  const formattedConversations = conversations.map((conv) => ({
+    ...conv,
+    time:
+      conv.time || new Date(conv.timestamp || Date.now()).toLocaleTimeString(),
+  }));
 
   return (
     <div className="app-container">
       <style>{`
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+        
         .app-container {
           display: flex;
           height: 100vh;
-          background: #1a1a2e;
+          background: #0f111a;
           color: #fff;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-        
-        .sidebar {
-          width: 260px;
-          background: #0f0f23;
-          border-right: 1px solid #2a2a3e;
-          padding: 1rem;
-        }
-        
-        .sidebar-header {
-          margin-bottom: 1rem;
-        }
-        
-        .chat-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        
-        .chat-item {
-          padding: 0.75rem;
-          border-radius: 0.5rem;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        
-        .chat-item:hover {
-          background: #1a1a2e;
-        }
-        
-        .chat-item.active {
-          background: #2a2a3e;
-        }
-        
-        .chat-title {
-          font-weight: 500;
-          margin-bottom: 0.25rem;
-        }
-        
-        .chat-time {
-          font-size: 0.75rem;
-          opacity: 0.6;
+          position: relative;
+          overflow: hidden;
         }
         
         .main-panel {
           flex: 1;
           display: flex;
           flex-direction: column;
+          background: #1a1d29;
         }
         
         .conversation {
@@ -187,12 +131,12 @@ export default function App() {
         }
         
         .message.user {
-          background: #2a2a3e;
+          background: #2a2d3a;
           margin-left: 20%;
         }
         
         .message.bot {
-          background: #1a1a2e;
+          background: #1e2129;
           margin-right: 20%;
         }
         
@@ -208,19 +152,25 @@ export default function App() {
         
         .input-area {
           padding: 1rem 2rem;
-          border-top: 1px solid #2a2a3e;
+          border-top: 1px solid #2a2d3a;
           display: flex;
           gap: 1rem;
+          background: #1a1d29;
         }
         
         .input-area input {
           flex: 1;
           padding: 0.75rem;
-          background: #0f0f23;
-          border: 1px solid #2a2a3e;
+          background: #0f111a;
+          border: 1px solid #2a2d3a;
           border-radius: 0.5rem;
           color: #fff;
           font-size: 1rem;
+        }
+        
+        .input-area input:focus {
+          outline: none;
+          border-color: #4a9eff;
         }
         
         .input-area button {
@@ -231,54 +181,26 @@ export default function App() {
           border-radius: 0.5rem;
           cursor: pointer;
           font-weight: 500;
+          transition: background 0.2s;
+        }
+        
+        .input-area button:hover:not(:disabled) {
+          background: #3a8eef;
         }
         
         .input-area button:disabled {
           opacity: 0.5;
           cursor: not-allowed;
         }
-        
-        .context-panel {
-          width: 320px;
-          background: #0f0f23;
-          border-left: 1px solid #2a2a3e;
-          padding: 1rem;
-        }
-        
-        .trace-info {
-          margin-top: 1rem;
-        }
-        
-        .info-item {
-          padding: 0.5rem;
-          background: #1a1a2e;
-          border-radius: 0.25rem;
-          margin-bottom: 0.5rem;
-          display: flex;
-          justify-content: space-between;
-        }
-        
-        .trace-details {
-          margin-top: 1rem;
-          padding: 1rem;
-          background: #1a1a2e;
-          border-radius: 0.5rem;
-          font-size: 0.875rem;
-        }
-        
-        .trace-details pre {
-          margin: 0;
-          white-space: pre-wrap;
-        }
       `}</style>
 
-      {isSidebarOpen && (
-        <Sidebar
-          conversations={conversations}
-          activeId={activeConversationId}
-          onSelect={setActiveConversation}
-        />
-      )}
+      <LeftSidebar
+        isOpen={leftSidebarOpen}
+        toggleSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
+        conversations={formattedConversations}
+        activeConv={activeConversationId}
+        setActiveConv={setActiveConversation}
+      />
 
       <MainPanel
         messages={messages}
@@ -286,9 +208,12 @@ export default function App() {
         isStreaming={isStreaming}
       />
 
-      {isContextPanelOpen && (
-        <ContextPanel trace={currentTrace} details={null} />
-      )}
+      <RightSidebar
+        isOpen={rightSidebarOpen}
+        toggleSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+        selectedTrace={currentTrace}
+        totalLogs={messages.length}
+      />
     </div>
   );
 }

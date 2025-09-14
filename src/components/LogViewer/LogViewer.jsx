@@ -1,8 +1,8 @@
-import React from 'react';
-import LogTable from './LogTable';
-import ParsedView from './ParsedView';
-import SummaryView from './SummaryView';
-import './LogViewer.css';
+import React from "react";
+import LogTable from "./LogTable";
+import ParsedView from "./ParsedView";
+import SummaryView from "./SummaryView";
+import "./LogViewer.css";
 
 export default function LogViewer() {
   return (

@@ -1,6 +1,6 @@
-import React from 'react';
-import './MainPanel.css';
-import Conversation from './Conversation';
+import React from "react";
+import "./MainPanel.css";
+import Conversation from "./Conversation";
 
 export default function MainPanel() {
   return (

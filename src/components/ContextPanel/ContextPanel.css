@@ -1,0 +1,63 @@
+/* components/ContextPanel/ContextPanel.css */
+
+.context-content {
+  padding: 1rem;
+}
+
+.context-section {
+  margin-bottom: 1.5rem;
+}
+
+.context-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.context-value {
+  padding: 0.5rem;
+  background: #0f111a;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.quick-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.tool-btn {
+  padding: 0.75rem;
+  background: #0f111a;
+  border: 1px solid #2a2d3a;
+  border-radius: 6px;
+  color: #e4e7eb;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.tool-btn:hover {
+  background: #2a2d3a;
+  border-color: #3b82f6;
+}
+
+.shortcuts-list {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.shortcut-key {
+  font-weight: 600;
+  color: #3b82f6;
+}

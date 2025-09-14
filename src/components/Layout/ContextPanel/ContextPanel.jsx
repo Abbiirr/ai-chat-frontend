@@ -1,7 +1,7 @@
-import React from 'react';
-import './ContextPanel.css';
-import TraceDetails from './TraceDetails';
-import QuickTools from './QuickTools';
+import React from "react";
+import "./ContextPanel.css";
+import TraceDetails from "./TraceDetails";
+import QuickTools from "./QuickTools";
 
 export default function ContextPanel() {
   return (

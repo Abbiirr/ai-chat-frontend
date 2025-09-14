@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 
 export default function MessageInput({ onSend }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   function submit(e) {
     e.preventDefault();
     if (!value) return;
     onSend?.(value);
-    setValue('');
+    setValue("");
   }
   return (
     <form className="message-input" onSubmit={submit}>
-      <input value={value} onChange={e => setValue(e.target.value)} placeholder="Write a message..." />
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Write a message..."
+      />
       <button type="submit">Send</button>
     </form>
   );

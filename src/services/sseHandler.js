@@ -27,7 +27,7 @@ export class SSEHandler {
   connect(url, onMessage, onError, onDone) {
     this.disconnect();
     this.processedEvents.clear();
-  this.eventSource = new EventSource(url);
+    this.eventSource = new EventSource(url);
 
     this.eventSource.onopen = () => console.log("✅ SSE Connected");
 

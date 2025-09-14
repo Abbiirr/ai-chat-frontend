@@ -1,0 +1,232 @@
+/* components/Sidebar/Sidebar.css */
+
+/* Left Sidebar */
+.left-sidebar {
+  background: #1a1d29;
+  border-right: 1px solid #2a2d3a;
+  transition: width 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.left-sidebar.open {
+  width: 260px;
+}
+
+.left-sidebar.closed {
+  width: 0;
+}
+
+/* Right Sidebar */
+.right-sidebar {
+  background: #1a1d29;
+  border-left: 1px solid #2a2d3a;
+  transition: width 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.right-sidebar.open {
+  width: 320px;
+}
+
+.right-sidebar.closed {
+  width: 0;
+}
+
+/* Toggle Buttons - Absolutely positioned */
+.toggle-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 72px;
+  background: #374151;
+  border: 1px solid #4b5563;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: background 0.2s;
+  color: #e5e7eb;
+}
+
+.toggle-btn:hover {
+  background: #4b5563;
+  color: #ffffff;
+}
+
+/* Left Toggle Button */
+.toggle-btn.left {
+  border-radius: 0 8px 8px 0;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Right Toggle Button */
+.toggle-btn.right {
+  border-radius: 8px 0 0 8px;
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid #2a2d3a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+}
+
+.sidebar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e5e7eb;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Chat List Styles */
+.chat-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.chat-item {
+  margin-bottom: 0.25rem;
+}
+
+.chat-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: background 0.2s;
+  text-align: left;
+  color: inherit;
+}
+
+.chat-btn:hover {
+  background: #2a2d3a;
+}
+
+.chat-item.active .chat-btn {
+  background: #374151;
+}
+
+.chat-icon {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.chat-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-title {
+  color: #e5e7eb;
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-time {
+  color: #6b7280;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Context Panel Styles */
+.context-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.context-section {
+  margin-bottom: 1.5rem;
+}
+
+.context-label {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.context-value {
+  color: #e5e7eb;
+  font-size: 14px;
+}
+
+/* Quick Tools */
+.quick-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.tool-btn {
+  background: #2a2d3a;
+  border: 1px solid #374151;
+  color: #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.tool-btn:hover {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+/* Shortcuts List */
+.shortcuts-list {
+  margin-top: 0.5rem;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #2a2d3a;
+  font-size: 13px;
+  color: #e5e7eb;
+}
+
+.shortcut-item:last-child {
+  border-bottom: none;
+}
+
+.shortcut-key {
+  background: #2a2d3a;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 600;
+}

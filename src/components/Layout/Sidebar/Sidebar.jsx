@@ -1,6 +1,6 @@
-import React from 'react';
-import './Sidebar.css';
-import ChatList from './ChatList';
+import React from "react";
+import "./Sidebar.css";
+import ChatList from "./ChatList";
 
 export default function Sidebar() {
   return (
