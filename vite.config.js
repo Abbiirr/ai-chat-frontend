@@ -5,9 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: "127.0.0.1", // Use IPv4 localhost
-    port: 3000,         // Change to a free port
+    port: 3000, // Change to a free port
     proxy: {
-      "/api": "http://localhost:5000",
+      "/api": "http://10.112.30.10:8000",
     },
   },
 });
