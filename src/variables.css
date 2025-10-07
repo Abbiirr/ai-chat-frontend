@@ -1,109 +1,109 @@
 /* CSS Custom Properties for ChatGPT-like theming */
 :root {
     /* Primary Colors */
-    --bg-primary: #212121;
-    --bg-secondary: #2f2f2f;
-    --bg-tertiary: #3c3c3c;
+    --bg-primary: #0a0f1c;
+    --bg-secondary: #121a2d;
+    --bg-tertiary: #1b2438;
 
     /* Text Colors */
-    --text-primary: #ececec;
-    --text-secondary: #b4b4b4;
-    --text-placeholder: #8e8e8e;
+    --text-primary: #f4f7ff;
+    --text-secondary: #bfc6de;
+    --text-placeholder: #7b84a7;
 
     /* Border Colors */
-    --border-light: #4d4d4d;
-    --border-medium: #565656;
-    --border-focus: #10a37f;
+    --border-light: rgba(123, 132, 167, 0.16);
+    --border-medium: rgba(123, 132, 167, 0.35);
+    --border-focus: #38bdf8;
 
     /* Avatar Colors */
-    --user-avatar-bg: #5436da;
-    --user-avatar-text: #ffffff;
-    --bot-avatar-bg: #10a37f;
-    --bot-avatar-text: #ffffff;
+    --user-avatar-bg: #38bdf8;
+    --user-avatar-text: #020617;
+    --bot-avatar-bg: #a855f7;
+    --bot-avatar-text: #fdf4ff;
 
     /* Button Colors */
-    --primary-button-bg: #10a37f;
-    --primary-button-text: #ffffff;
-    --primary-button-hover: #0d8f6c;
-    --disabled-button-bg: #40414f;
-    --disabled-button-text: #6f6f6f;
+    --primary-button-bg: #38bdf8;
+    --primary-button-text: #020617;
+    --primary-button-hover: #0ea5e9;
+    --disabled-button-bg: rgba(148, 163, 184, 0.18);
+    --disabled-button-text: rgba(148, 163, 184, 0.6);
 
     /* Input Colors */
-    --input-bg: #40414f;
-    --focus-ring: rgba(16, 163, 127, 0.2);
+    --input-bg: rgba(15, 23, 42, 0.7);
+    --focus-ring: rgba(56, 189, 248, 0.28);
 
     /* Scrollbar Colors */
-    --scrollbar-thumb: #4d4d4d;
-    --scrollbar-thumb-hover: #666666;
+    --scrollbar-thumb: rgba(148, 163, 184, 0.32);
+    --scrollbar-thumb-hover: rgba(148, 163, 184, 0.6);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.25);
+    --shadow-md: 0 12px 24px -12px rgba(15, 23, 42, 0.55);
+    --shadow-lg: 0 18px 42px -18px rgba(15, 23, 42, 0.6);
 }
 
 /* Light Theme */
 [data-theme="light"] {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f7f7f8;
-    --bg-tertiary: #efefef;
+    --bg-primary: #f6f8ff;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e8edff;
 
-    --text-primary: #343541;
-    --text-secondary: #676767;
-    --text-placeholder: #8e8ea0;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-placeholder: #9ca3af;
 
-    --border-light: #e5e5e5;
-    --border-medium: #d1d5db;
-    --border-focus: #10a37f;
+    --border-light: rgba(148, 163, 184, 0.2);
+    --border-medium: rgba(148, 163, 184, 0.35);
+    --border-focus: #2563eb;
 
-    --user-avatar-bg: #5436da;
-    --user-avatar-text: #ffffff;
-    --bot-avatar-bg: #10a37f;
-    --bot-avatar-text: #ffffff;
+    --user-avatar-bg: #2563eb;
+    --user-avatar-text: #f8fafc;
+    --bot-avatar-bg: #9333ea;
+    --bot-avatar-text: #fdf4ff;
 
-    --primary-button-bg: #10a37f;
-    --primary-button-text: #ffffff;
-    --primary-button-hover: #0d8f6c;
-    --disabled-button-bg: #f4f4f4;
-    --disabled-button-text: #acacbe;
+    --primary-button-bg: #2563eb;
+    --primary-button-text: #f8fafc;
+    --primary-button-hover: #1d4ed8;
+    --disabled-button-bg: rgba(148, 163, 184, 0.15);
+    --disabled-button-text: rgba(107, 114, 128, 0.6);
 
-    --input-bg: #ffffff;
-    --focus-ring: rgba(16, 163, 127, 0.15);
+    --input-bg: rgba(255, 255, 255, 0.92);
+    --focus-ring: rgba(37, 99, 235, 0.18);
 
-    --scrollbar-thumb: #d1d5db;
-    --scrollbar-thumb-hover: #9ca3af;
+    --scrollbar-thumb: rgba(148, 163, 184, 0.45);
+    --scrollbar-thumb-hover: rgba(107, 114, 128, 0.7);
 }
 
 /* High Contrast Theme */
 [data-theme="high-contrast"] {
-    --bg-primary: #000000;
-    --bg-secondary: #1a1a1a;
-    --bg-tertiary: #2d2d2d;
+    --bg-primary: #030712;
+    --bg-secondary: #0b1120;
+    --bg-tertiary: #111827;
 
-    --text-primary: #ffffff;
-    --text-secondary: #cccccc;
-    --text-placeholder: #999999;
+    --text-primary: #f8fafc;
+    --text-secondary: #d1d5db;
+    --text-placeholder: #a1a1aa;
 
-    --border-light: #666666;
-    --border-medium: #888888;
-    --border-focus: #00ff88;
+    --border-light: rgba(248, 250, 252, 0.35);
+    --border-medium: rgba(248, 250, 252, 0.55);
+    --border-focus: #22d3ee;
 
-    --user-avatar-bg: #0066ff;
-    --user-avatar-text: #ffffff;
-    --bot-avatar-bg: #00ff88;
-    --bot-avatar-text: #000000;
+    --user-avatar-bg: #22d3ee;
+    --user-avatar-text: #020617;
+    --bot-avatar-bg: #a855f7;
+    --bot-avatar-text: #fdf4ff;
 
-    --primary-button-bg: #00ff88;
-    --primary-button-text: #000000;
-    --primary-button-hover: #00cc6a;
-    --disabled-button-bg: #333333;
-    --disabled-button-text: #666666;
+    --primary-button-bg: #22d3ee;
+    --primary-button-text: #020617;
+    --primary-button-hover: #0ea5e9;
+    --disabled-button-bg: rgba(226, 232, 240, 0.18);
+    --disabled-button-text: rgba(226, 232, 240, 0.6);
 
-    --input-bg: #1a1a1a;
-    --focus-ring: rgba(0, 255, 136, 0.3);
+    --input-bg: rgba(3, 7, 18, 0.82);
+    --focus-ring: rgba(34, 211, 238, 0.32);
 
-    --scrollbar-thumb: #666666;
-    --scrollbar-thumb-hover: #888888;
+    --scrollbar-thumb: rgba(226, 232, 240, 0.35);
+    --scrollbar-thumb-hover: rgba(226, 232, 240, 0.7);
 }
 
 /* Animation Variables */
@@ -165,4 +165,38 @@
     --z-popover: 1060;
     --z-tooltip: 1070;
     --z-toast: 1080;
+
+    --accent-primary: #38bdf8;
+    --accent-secondary: #a855f7;
+    --accent-tertiary: #f97316;
+    --glass-border: rgba(148, 163, 184, 0.32);
+    --glass-border-strong: rgba(148, 163, 184, 0.45);
+    --glass-bg: rgba(15, 23, 42, 0.5);
+    --glass-bg-strong: rgba(15, 23, 42, 0.72);
+    --glow-soft: rgba(56, 189, 248, 0.35);
+    --glow-strong: rgba(168, 85, 247, 0.4);
+}
+
+[data-theme="light"] {
+    --accent-primary: #2563eb;
+    --accent-secondary: #9333ea;
+    --accent-tertiary: #f97316;
+    --glass-border: rgba(148, 163, 184, 0.28);
+    --glass-border-strong: rgba(148, 163, 184, 0.4);
+    --glass-bg: rgba(255, 255, 255, 0.92);
+    --glass-bg-strong: rgba(241, 245, 255, 0.9);
+    --glow-soft: rgba(37, 99, 235, 0.28);
+    --glow-strong: rgba(147, 51, 234, 0.28);
+}
+
+[data-theme="high-contrast"] {
+    --accent-primary: #22d3ee;
+    --accent-secondary: #f472b6;
+    --accent-tertiary: #facc15;
+    --glass-border: rgba(248, 250, 252, 0.45);
+    --glass-border-strong: rgba(248, 250, 252, 0.65);
+    --glass-bg: rgba(3, 7, 18, 0.75);
+    --glass-bg-strong: rgba(3, 7, 18, 0.92);
+    --glow-soft: rgba(34, 211, 238, 0.35);
+    --glow-strong: rgba(244, 114, 182, 0.45);
 }
