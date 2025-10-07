@@ -1,0 +1,14 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "0.0.0.0:13000:3000"
+    environment:
+      - VITE_API_URL=http://10.112.30.10:8000
+    volumes:
+      - .:/app:cached
+      - /app/node_modules
+    # No need for command override, it's in the Dockerfile
