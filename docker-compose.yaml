@@ -11,5 +11,4 @@ services:
     volumes:
       - .:/app:cached
       - /app/node_modules
-      - /app/package-lock.json
     # No need for command override, it's in the Dockerfile
