@@ -1,12 +1,18 @@
 # Development stage
-FROM node:18-alpine AS development
+FROM node:20-alpine AS development
 WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache g++ make python3
 
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies)
-RUN npm ci
+# Remove package-lock.json if it exists and do fresh install with explicit rollup binary
+RUN rm -f package-lock.json && \
+    npm cache clean --force && \
+    npm install --force && \
+    npm install --force @rollup/rollup-linux-x64-musl
 
 # Copy source code
 COPY . .
@@ -15,17 +21,21 @@ COPY . .
 EXPOSE 3000
 
 # Start development server
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 # Production build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache g++ make python3
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies without optional native binaries
-RUN npm ci --no-optional
+# Clean install all dependencies
+RUN npm cache clean --force && \
+    npm install
 
 # Copy source and build
 COPY . .
