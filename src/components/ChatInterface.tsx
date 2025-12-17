@@ -258,7 +258,7 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const messagesWrapperRef = useRef<HTMLDivElement | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const processedEventsRef = useRef<Set<string>>(new Set());
 
@@ -272,7 +272,17 @@ export default function ChatInterface() {
   }, []);
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesWrapperRef.current;
+    if (!container) return;
+
+    const behavior: ScrollBehavior = messages.length > 1 ? "smooth" : "auto";
+    // Use requestAnimationFrame so layout completes before scrolling.
+    requestAnimationFrame(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior,
+      });
+    });
   }, [messages]);
 
   const sendMessage = async (
@@ -281,7 +291,7 @@ export default function ChatInterface() {
     env: string,
     domain: string,
   ) => {
-    if (!input.trim() || isStreaming) return;
+    if (!userMessage.trim() || isStreaming) return;
 
     processedEventsRef.current.clear();
 
@@ -397,7 +407,10 @@ export default function ChatInterface() {
       </header>
 
       <main className="messages-container">
-        <div className="messages-wrapper">
+        <div
+          className={`messages-wrapper ${messages.length ? "has-messages" : ""}`}
+          ref={messagesWrapperRef}
+        >
           {messages.length === 0 && (
             <div className="welcome-message">
               <div className="welcome-title">
@@ -414,8 +427,6 @@ export default function ChatInterface() {
               downloadLinks={message.downloadLinks || []}
             />
           ))}
-
-          <div ref={scrollRef} />
         </div>
       </main>
 
