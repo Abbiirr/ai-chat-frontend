@@ -9,16 +9,6 @@ import type {
 import ChatBubble from "./ChatBubble";
 import ChatInput from "./ChatInput";
 import { Badge } from "./ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
-import { ScrollArea } from "./ui/scroll-area";
-import { Sparkles } from "lucide-react";
 
 type SummaryPayload = {
   created_files?: string[];
@@ -406,72 +396,61 @@ export default function ChatInterface() {
   };
 
   return (
-    <Card className="overflow-hidden border-border bg-card shadow-2xl">
-      <CardHeader className="border-b border-border bg-background">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-              <Sparkles className="h-5 w-5" />
-            </span>
-            <div className="space-y-1">
-              <CardTitle className="text-xl">Conversation</CardTitle>
-              <CardDescription>
-                Send a prompt and stream structured responses in real time.
-              </CardDescription>
-            </div>
-          </div>
-          <Badge variant={isStreaming ? "info" : "muted"} className="flex items-center gap-2 text-xs">
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                isStreaming ? "bg-accent animate-pulse" : "bg-muted-foreground/50"
-              }`}
-            />
-            {isStreaming ? "Streaming" : "Idle"}
+    <div className="flex flex-1 min-h-0 flex-col">
+      <div className="flex items-center justify-between gap-3 py-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold">Chat</h2>
+          <Badge variant="muted" className="text-[11px] uppercase tracking-wide">
+            {isStreaming ? "Streaming" : "Ready"}
           </Badge>
         </div>
-      </CardHeader>
+        <p className="text-xs text-muted-foreground">
+          {isStreaming ? "Working…" : "Ask about traces, summaries, or IDs."}
+        </p>
+      </div>
 
-      <CardContent className="p-0">
-        <div className="px-6 py-6">
-          <ScrollArea viewportRef={messagesWrapperRef} className="h-[58vh] w-full rounded-2xl border border-border bg-background">
-            <div className="flex min-h-[50vh] flex-col gap-4 p-4">
-              {messages.length === 0 ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-                  <Badge variant="muted" className="px-3 py-1 text-xs uppercase">
-                    Loggy is ready
-                  </Badge>
-                  <div className="space-y-1">
-                    <p className="text-lg font-semibold text-foreground">
-                      How can I help you check logs today?
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Ask about traces, summaries, or IDs you want to explore.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                messages.map((message, index) => (
-                  <ChatBubble
-                    key={`${message.from}-${index}-${message.text.length}`}
-                    message={message}
-                    index={index}
-                    downloadLinks={message.downloadLinks || []}
-                  />
-                ))
-              )}
+      <div
+        ref={messagesWrapperRef}
+        className="flex-1 overflow-y-auto pb-6 pt-2"
+      >
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          {messages.length === 0 ? (
+            <div className="flex min-h-[45vh] flex-col justify-center gap-3">
+              <Badge variant="muted" className="w-fit px-3 py-1 text-xs uppercase">
+                Loggy is ready
+              </Badge>
+              <div className="space-y-1">
+                <p className="text-xl font-semibold tracking-tight">
+                  How can I help you check logs today?
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Include a timeframe, service/domain, and any trace IDs you have.
+                </p>
+              </div>
             </div>
-          </ScrollArea>
+          ) : (
+            messages.map((message, index) => (
+              <ChatBubble
+                key={`${message.from}-${index}-${message.text.length}`}
+                message={message}
+                index={index}
+                downloadLinks={message.downloadLinks || []}
+              />
+            ))
+          )}
         </div>
-      </CardContent>
+      </div>
 
-      <CardFooter className="border-t border-border bg-background p-4">
-        <ChatInput
-          input={input}
-          setInput={setInput}
-          onSend={sendMessage}
-          isStreaming={isStreaming}
-        />
-      </CardFooter>
-    </Card>
+      <div className="border-t border-border bg-background/80 py-4 backdrop-blur">
+        <div className="mx-auto w-full max-w-3xl">
+          <ChatInput
+            input={input}
+            setInput={setInput}
+            onSend={sendMessage}
+            isStreaming={isStreaming}
+          />
+        </div>
+      </div>
+    </div>
   );
 }

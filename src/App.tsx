@@ -5,28 +5,22 @@ import { ThemeProvider } from "./components/theme-provider";
 export default function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="chat-theme">
-      <div className="min-h-screen bg-background text-foreground">
-        <div className="container flex min-h-screen flex-col gap-8 py-10">
-          <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">
+      <div className="flex min-h-screen flex-col bg-background text-foreground">
+        <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-3">
+            <div className="leading-tight">
+              <p className="text-xs font-medium text-muted-foreground">
                 Observability copilot
               </p>
-              <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                  Loggy
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Streamlined chat for hunting traces and summaries.
-                </p>
-              </div>
+              <h1 className="text-base font-semibold tracking-tight">Loggy</h1>
             </div>
-
             <ThemeToggle />
-          </header>
+          </div>
+        </header>
 
+        <main className="mx-auto flex w-full max-w-4xl flex-1 min-h-0 flex-col px-4">
           <ChatInterface />
-        </div>
+        </main>
       </div>
     </ThemeProvider>
   );
