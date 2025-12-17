@@ -1,43 +1,33 @@
-import { useEffect, useState } from "react";
 import ChatInterface from "./components/ChatInterface";
-import "./App.css";
-
-type Theme = "dark" | "light" | "high-contrast";
-
-const isTheme = (value: string | null): value is Theme =>
-  value === "dark" || value === "light" || value === "high-contrast";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { ThemeProvider } from "./components/theme-provider";
 
 export default function App() {
-  const [theme, setTheme] = useState<Theme>("dark");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("chat-theme");
-    const savedTheme = isTheme(stored) ? stored : "dark";
-    setTheme(savedTheme);
-    document.documentElement.setAttribute("data-theme", savedTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    localStorage.setItem("chat-theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
-  };
-
   return (
-    <div className="App app-fade-in" data-theme={theme}>
-      {/* You can add a theme toggle button here if needed */}
-      {/*
-      <button
-        className="theme-toggle"
-        onClick={toggleTheme}
-        aria-label="Toggle theme"
-      >
-        {theme === 'dark' ? 'ƒ~?‹,?' : 'dYOT'}
-      </button>
-      */}
+    <ThemeProvider defaultTheme="system" storageKey="chat-theme">
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="container flex min-h-screen flex-col gap-8 py-10">
+          <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">
+                Observability copilot
+              </p>
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                  Loggy
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Streamlined chat for hunting traces and summaries.
+                </p>
+              </div>
+            </div>
 
-      <ChatInterface />
-    </div>
+            <ThemeToggle />
+          </header>
+
+          <ChatInterface />
+        </div>
+      </div>
+    </ThemeProvider>
   );
 }

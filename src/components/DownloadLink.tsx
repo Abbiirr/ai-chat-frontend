@@ -1,12 +1,12 @@
+import { ArrowDownToLine } from "lucide-react";
+
 import type { DownloadLink as DownloadLinkType } from "../types";
-import "./DownloadLink.css";
 
 type DownloadLinkProps = {
   link: DownloadLinkType;
 };
 
 export default function DownloadLink({ link }: DownloadLinkProps) {
-  const icon = link.type === "master_summary" ? 'dY"S' : 'dY",';
   return (
     <li>
       <a
@@ -14,9 +14,10 @@ export default function DownloadLink({ link }: DownloadLinkProps) {
         download={link.name}
         target="_blank"
         rel="noopener noreferrer"
-        className="download-link"
+        className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/60 px-3 py-2 text-sm font-medium transition hover:border-primary/60 hover:bg-primary/10"
       >
-        {icon} {link.name}
+        <ArrowDownToLine className="h-4 w-4" />
+        <span className="truncate">{link.name}</span>
       </a>
     </li>
   );
