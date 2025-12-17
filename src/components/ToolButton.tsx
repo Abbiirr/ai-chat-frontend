@@ -41,13 +41,13 @@ export default function ToolButton({
           size="sm"
           disabled={disabled || options.length === 0}
           className={cn(
-            "rounded-full border-border/70 bg-background/70 px-3 py-1 text-xs font-semibold shadow-sm transition hover:border-primary/50 hover:bg-primary/10",
+            "rounded-lg border-border bg-muted px-3 py-2 text-xs font-semibold shadow-sm transition hover:bg-background",
             disabled && "cursor-not-allowed opacity-60",
           )}
         >
           <IconComponent className="mr-2 h-4 w-4" />
           <span className="hidden sm:inline">{title}</span>
-          <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="ml-2 rounded-md bg-background px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {safeValue}
           </span>
         </Button>

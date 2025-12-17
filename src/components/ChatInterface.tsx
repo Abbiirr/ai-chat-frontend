@@ -406,8 +406,8 @@ export default function ChatInterface() {
   };
 
   return (
-    <Card className="overflow-hidden border-border/70 bg-card/80 shadow-2xl">
-      <CardHeader className="border-b border-border/60 bg-gradient-to-r from-primary/5 via-accent/5 to-transparent">
+    <Card className="overflow-hidden border-border bg-card shadow-2xl">
+      <CardHeader className="border-b border-border bg-background">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
@@ -420,10 +420,7 @@ export default function ChatInterface() {
               </CardDescription>
             </div>
           </div>
-          <Badge
-            variant={isStreaming ? "info" : "muted"}
-            className="flex items-center gap-2 text-xs"
-          >
+          <Badge variant={isStreaming ? "info" : "muted"} className="flex items-center gap-2 text-xs">
             <span
               className={`h-2.5 w-2.5 rounded-full ${
                 isStreaming ? "bg-accent animate-pulse" : "bg-muted-foreground/50"
@@ -436,10 +433,7 @@ export default function ChatInterface() {
 
       <CardContent className="p-0">
         <div className="px-6 py-6">
-          <ScrollArea
-            viewportRef={messagesWrapperRef}
-            className="h-[58vh] w-full rounded-2xl border border-border/60 bg-background/50 shadow-inner"
-          >
+          <ScrollArea viewportRef={messagesWrapperRef} className="h-[58vh] w-full rounded-2xl border border-border bg-background">
             <div className="flex min-h-[50vh] flex-col gap-4 p-4">
               {messages.length === 0 ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
@@ -470,7 +464,7 @@ export default function ChatInterface() {
         </div>
       </CardContent>
 
-      <CardFooter className="border-t border-border/60 bg-background/60 p-4">
+      <CardFooter className="border-t border-border bg-background p-4">
         <ChatInput
           input={input}
           setInput={setInput}

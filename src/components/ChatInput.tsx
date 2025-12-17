@@ -103,7 +103,7 @@ export default function ChatInput({
       <div className="flex flex-col gap-3 md:flex-row">
         <Textarea
           ref={textareaRef}
-          className="min-h-[140px] flex-1 resize-none bg-card/50"
+          className="min-h-[140px] flex-1 resize-none bg-muted"
           value={input}
           onChange={handleChange}
           onKeyDown={handleKeyDown}

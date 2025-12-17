@@ -29,25 +29,26 @@
   }
 
   .dark {
-    --background: 222 47% 7%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 199 89% 55%;
-    --primary-foreground: 222 47% 9%;
-    --secondary: 222 42% 16%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 222 42% 16%;
-    --muted-foreground: 215 18% 72%;
-    --accent: 262 83% 68%;
-    --accent-foreground: 210 40% 98%;
+    /* Inspired by OpenWebUI defaults (gray-900 / #171717, text / #eee). */
+    --background: 0 0% 9%;
+    --foreground: 0 0% 93%;
+    --card: 0 0% 15%;
+    --card-foreground: 0 0% 93%;
+    --popover: 0 0% 15%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 161 94% 30%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 93%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 63%;
+    --accent: 0 0% 93%;
+    --accent-foreground: 0 0% 9%;
     --destructive: 0 70% 55%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 222 42% 20%;
-    --input: 222 42% 20%;
-    --ring: 199 89% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 214 100% 85%;
     --radius: 0.95rem;
   }
 
@@ -65,6 +66,12 @@
     background-attachment: fixed;
   }
 
+  .dark body {
+    background-image: none;
+    background-color: #171717;
+    color: #eee;
+  }
+
   a {
     @apply text-primary underline-offset-4 transition-colors;
   }
@@ -74,8 +81,14 @@
   }
 
   ::selection {
-    background: hsl(var(--accent) / 0.35);
-    color: hsl(var(--foreground));
+    /* Mirrors OpenWebUI editor selection color (#b4d5ff). */
+    background: rgba(180, 213, 255, 0.45);
+    color: #0d0d0d;
+  }
+
+  .dark ::selection {
+    background: rgba(180, 213, 255, 0.35);
+    color: #0d0d0d;
   }
 
   ::-webkit-scrollbar {
@@ -88,16 +101,33 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.2);
+    background: rgba(215, 215, 215, 0.6);
     border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.35);
+    background: rgba(215, 215, 215, 0.75);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(67, 67, 67, 0.6);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(67, 67, 67, 0.8);
   }
 
   *:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+  }
+
+  code {
+    color: #eb5757;
+    @apply rounded-md bg-muted px-1.5 py-0.5 text-[0.9em] font-semibold;
+  }
+
+  pre code {
+    @apply bg-transparent p-0;
   }
 }

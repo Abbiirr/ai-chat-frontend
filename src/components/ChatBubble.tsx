@@ -87,7 +87,7 @@ export default function ChatBubble({
             "w-full rounded-2xl px-4 py-3 text-sm shadow-sm transition-colors",
             isUser
               ? "bg-primary text-primary-foreground"
-              : "border border-border/70 bg-card/80 text-foreground",
+              : "border border-border bg-card text-foreground",
           )}
         >
           <div className="whitespace-pre-wrap leading-relaxed">{body}</div>
@@ -125,7 +125,7 @@ export default function ChatBubble({
                         download={link.name}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-foreground underline-offset-4 transition hover:border-primary/60 hover:bg-primary/10"
+                        className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground underline-offset-4 transition hover:border-primary/60 hover:bg-muted"
                       >
                         <ArrowDownToLine className="h-4 w-4 shrink-0" />
                         <span className="truncate">{link.name}</span>
