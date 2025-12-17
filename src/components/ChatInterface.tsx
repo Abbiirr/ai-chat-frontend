@@ -1,12 +1,43 @@
-import { useState, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./ChatInterface.css";
 import ChatInput from "./ChatInput";
 import ChatBubble from "./ChatBubble";
+import type {
+  ChatRequestBody,
+  DownloadLink,
+  Message,
+  StreamEventPayload,
+} from "../types";
 
-function parseEventMessage(raw) {
-  console.log(raw);
-  const result = { event: "", data: "" };
+type SummaryPayload = {
+  created_files?: string[];
+  master_summary_file?: string;
+};
+
+type HandlerContext = {
+  setMessages: Dispatch<SetStateAction<Message[]>>;
+  setIsStreaming: Dispatch<SetStateAction<boolean>>;
+  eventSourceRef: MutableRefObject<EventSource | null>;
+  buildDownloadLinks: (payload: SummaryPayload) => DownloadLink[];
+  rawEvent: string;
+};
+
+type Handler = (parsed: unknown, raw: string, helpers: HandlerContext) => void;
+
+const apiBase = (() => {
+  const env = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+  return env.replace(/\/$/, "") || "http://10.112.30.10:8000";
+})();
+
+const buildApiUrl = (path: string): string =>
+  `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
+
+const buildDownloadUrl = (filename: string): string =>
+  new URL(`/download/?filename=${encodeURIComponent(filename)}`, apiBase).toString();
+
+function parseEventMessage(raw: string): StreamEventPayload {
+  const result: StreamEventPayload = { event: "", data: "" };
   raw
     .trim()
     .split(/\r?\n/)
@@ -16,33 +47,30 @@ function parseEventMessage(raw) {
       if (prefix === "event") result.event = value;
       else if (prefix === "data") result.data += value;
     });
-  console.log(result);
   return result;
 }
 
-function buildDownloadLinks(payload) {
-  const links = [];
+function buildDownloadLinks(payload: SummaryPayload): DownloadLink[] {
+  const links: DownloadLink[] = [];
 
   if (Array.isArray(payload.created_files)) {
     payload.created_files.forEach((fullPath) => {
-      const name = fullPath.split(/[\\/]/).pop();
+      const name = fullPath.split(/[\\/]/).pop() || fullPath;
       links.push({
         name,
-        url: `http://10.112.30.10:8000/download/?filename=${encodeURIComponent(
-          name
-        )}`,
+        url: buildDownloadUrl(name),
         type: "trace_analysis",
       });
     });
   }
 
   if (typeof payload.master_summary_file === "string") {
-    const name = payload.master_summary_file.split(/[\\/]/).pop();
+    const name =
+      payload.master_summary_file.split(/[\\/]/).pop() ||
+      payload.master_summary_file;
     links.push({
       name,
-      url: `http://10.112.30.10:8000/download/?filename=${encodeURIComponent(
-        name
-      )}`,
+      url: buildDownloadUrl(name),
       type: "master_summary",
     });
   }
@@ -50,10 +78,12 @@ function buildDownloadLinks(payload) {
   return links;
 }
 
-// Helper to update the last bot message with download links
-const updateLastBotMessageWithLinks = (messages, newLinks) => {
+const updateLastBotMessageWithLinks = (
+  messages: Message[],
+  newLinks: DownloadLink[],
+): Message[] => {
   const copy = [...messages];
-  for (let i = copy.length - 1; i >= 0; i--) {
+  for (let i = copy.length - 1; i >= 0; i -= 1) {
     if (copy[i].from === "bot") {
       const existingLinks = copy[i].downloadLinks || [];
       copy[i] = {
@@ -66,9 +96,8 @@ const updateLastBotMessageWithLinks = (messages, newLinks) => {
   return copy;
 };
 
-// outside your component (or at top of ChatInterface.jsx)
 const createTextAppender =
-  (templateFn) =>
+  (templateFn: (parsed: unknown, raw: string) => string): Handler =>
   (parsed, raw, { setMessages }) => {
     const chunk = templateFn(parsed, raw) + "\n\n";
     setMessages((prev) => {
@@ -80,11 +109,10 @@ const createTextAppender =
     });
   };
 
-// catch‑all for any event you haven't explicitly handled:
-const defaultHandler = (parsed, raw, { setMessages, rawEvent }) => {
+const defaultHandler: Handler = (parsed, raw, { setMessages, rawEvent }) => {
   const header = `${rawEvent}`;
   const body =
-    typeof parsed === "object" ? JSON.stringify(parsed, null, 2) : parsed;
+    typeof parsed === "object" ? JSON.stringify(parsed, null, 2) : String(parsed);
   const chunk = [header, body].join("\n") + "\n\n";
 
   setMessages((prev) => {
@@ -96,53 +124,73 @@ const defaultHandler = (parsed, raw, { setMessages, rawEvent }) => {
   });
 };
 
-const handlers = {
-  "Extracted Parameters": createTextAppender(({ parameters }) => {
-    const { time_frame, domain, query_keys } = parameters;
-    const keywords = Array.isArray(query_keys)
-      ? query_keys.join(", ")
-      : query_keys;
-    return [
-      "I have found the following parameters from your request",
-      `Time Frame: ${time_frame}`,
-      `Domain: ${domain}`,
-      `Keywords to search for: ${keywords}`,
-    ].join("\n");
+const handlers: Record<string, Handler> = {
+  "Extracted Parameters": createTextAppender((parsed) => {
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "parameters" in parsed
+    ) {
+      const parameters = (parsed as { parameters: Record<string, unknown> })
+        .parameters;
+      const timeFrame = String(
+        (parameters as Record<string, unknown>).time_frame ?? "",
+      );
+      const domain = String(
+        (parameters as Record<string, unknown>).domain ?? "",
+      );
+      const queryKeys = (parameters as Record<string, unknown>).query_keys as
+        | string[]
+        | string
+        | undefined;
+      const keywords = Array.isArray(queryKeys)
+        ? queryKeys.join(", ")
+        : queryKeys ?? "";
+      return [
+        "I have found the following parameters from your request",
+        `Time Frame: ${timeFrame}`,
+        `Domain: ${domain}`,
+        `Keywords to search for: ${keywords}`,
+      ].join("\n");
+    }
+    return String(parsed);
   }),
 
   "Downloaded logs in file": createTextAppender(() => "Downloaded logs"),
 
-  "Found trace id(s)": createTextAppender(
-    (parsed) => `Found ${parsed.count} requests`
-  ),
+  "Found trace id(s)": createTextAppender((parsed) => {
+    if (typeof parsed === "object" && parsed !== null && "count" in parsed) {
+      return `Found ${(parsed as { count: number }).count} requests`;
+    }
+    return String(parsed);
+  }),
 
-  "Compiled Request Traces": createTextAppender(
-    () => "Compiled Request Traces"
-  ),
+  "Compiled Request Traces": createTextAppender(() => "Compiled Request Traces"),
 
   done: (parsed, raw, { setMessages, setIsStreaming, eventSourceRef }) => {
-    // 1) append the final bit of text…
     setMessages((prev) => {
       const last = prev[prev.length - 1];
       if (last?.from === "bot" && !last.text.includes(raw)) {
+        const finalText =
+          typeof parsed === "object" && parsed !== null && "message" in parsed
+            ? (parsed as { message?: string }).message ?? raw
+            : raw;
         return [
           ...prev.slice(0, -1),
-          { ...last, text: last.text + (parsed.message || raw) + "\n\n" },
+          { ...last, text: last.text + finalText + "\n\n" },
         ];
       }
       return prev;
     });
 
-    // 2) turn off the “isStreaming” flag on any bot bubble
     setMessages((prev) =>
       prev.map((msg) =>
         msg.from === "bot" && msg.isStreaming
           ? { ...msg, isStreaming: false }
-          : msg
-      )
+          : msg,
+      ),
     );
 
-    // 3) close your SSE and clear the component‑level flag
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
@@ -150,32 +198,25 @@ const handlers = {
     setIsStreaming(false);
   },
 
-  "Compiled Summary": (parsed, raw, { setMessages, buildDownloadLinks }) => {
-    const links = buildDownloadLinks(parsed);
+  "Compiled Summary": (parsed, _raw, { setMessages, buildDownloadLinks }) => {
+    const links = buildDownloadLinks((parsed ?? {}) as SummaryPayload);
     setMessages((prev) => updateLastBotMessageWithLinks(prev, links));
   },
 
   "Verification Results": (parsed, raw, { setMessages }) => {
-    console.log("Verification Results raw:", raw);
-    console.log("Verification Results parsed:", parsed);
-
-    // Use the raw string data directly since it contains the full message
     const verificationText = typeof parsed === "string" ? parsed : raw;
 
-    // Extract only the summary part (before "Relevant files:")
     const summaryText = verificationText.split("Relevant files:")[0].trim();
 
-    // Extract filenames using regex
     const relevantMatch = verificationText.match(/Relevant files:\s*\[(.*?)\]/);
     const lessRelevantMatch = verificationText.match(
-      /Less Relevant Files:\s*\[(.*?)\]/
+      /Less Relevant Files:\s*\[(.*?)\]/,
     );
     const notRelevantMatch = verificationText.match(
-      /Not Relevant Files:\s*\[(.*?)\]/
+      /Not Relevant Files:\s*\[(.*?)\]/,
     );
 
-    // Helper function to parse file arrays
-    const parseFiles = (match) => {
+    const parseFiles = (match: RegExpMatchArray | null): string[] => {
       if (!match || !match[1] || match[1].trim() === "") return [];
       return match[1]
         .split(",")
@@ -187,22 +228,18 @@ const handlers = {
     const lessRelevantFiles = parseFiles(lessRelevantMatch);
     const notRelevantFiles = parseFiles(notRelevantMatch);
 
-    // Create download links
-    const allFiles = [
+    const allFiles: Array<{ name: string; type: DownloadLink["type"] }> = [
       ...relevantFiles.map((name) => ({ name, type: "relevant" })),
       ...lessRelevantFiles.map((name) => ({ name, type: "less_relevant" })),
       ...notRelevantFiles.map((name) => ({ name, type: "not_relevant" })),
     ];
 
-    const downloadLinks = allFiles.map(({ name, type }) => ({
+    const downloadLinks: DownloadLink[] = allFiles.map(({ name, type }) => ({
       name,
-      url: `http://10.112.30.10:8000/download/?filename=${encodeURIComponent(
-        name
-      )}`,
+      url: buildDownloadUrl(name),
       type,
     }));
 
-    // Update messages with both text and download links
     setMessages((prev) => {
       const last = prev[prev.length - 1];
       if (last?.from === "bot") {
@@ -210,7 +247,6 @@ const handlers = {
           ...prev.slice(0, -1),
           { ...last, text: last.text + summaryText + "\n\n" },
         ];
-        // Then add the download links to the same message
         return updateLastBotMessageWithLinks(updatedMessages, downloadLinks);
       }
       return prev;
@@ -219,13 +255,12 @@ const handlers = {
 };
 
 export default function ChatInterface() {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const scrollRef = useRef();
-  const eventSourceRef = useRef();
-  const lastChunkRef = useRef("");
-  const processedEventsRef = useRef(new Set()); // Track processed events
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const processedEventsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     return () => {
@@ -240,34 +275,34 @@ export default function ChatInterface() {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = async (userMessage, project, env, domain) => {
+  const sendMessage = async (
+    userMessage: string,
+    project: string,
+    env: string,
+    domain: string,
+  ) => {
     if (!input.trim() || isStreaming) return;
-    console.log(userMessage, project, env);
 
-    // Reset processed events for new message
     processedEventsRef.current.clear();
-    lastChunkRef.current = "";
 
     setMessages((m) => [...m, { from: "user", text: userMessage }]);
     setInput("");
     setIsStreaming(true);
 
     try {
-      const requestBody = {
+      const requestBody: ChatRequestBody = {
         prompt: userMessage,
-        project: project,
-        env: env,
-        domain: domain,
+        project,
+        env,
+        domain,
       };
-      console.log("Request Body:", requestBody);
 
-      // Close any existing SSE connection first
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
 
-      const response = await fetch("http://10.112.30.10:8000/api/chat", {
+      const response = await fetch(buildApiUrl("/api/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
@@ -275,23 +310,22 @@ export default function ChatInterface() {
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const { streamUrl } = await response.json();
+      const { streamUrl } = (await response.json()) as { streamUrl: string };
 
       setMessages((m) => [
         ...m,
         { from: "bot", text: "", isStreaming: true, downloadLinks: [] },
       ]);
 
-      eventSourceRef.current = new EventSource(
-        `http://10.112.30.10:8000${streamUrl}`
-      );
+      const eventSource = new EventSource(new URL(streamUrl, apiBase).toString());
+      eventSourceRef.current = eventSource;
 
-      eventSourceRef.current.onopen = () => {
-        console.log("✅ SSE Opened");
+      eventSource.onopen = () => {
+        // SSE opened
       };
 
-      eventSourceRef.current.onerror = (e) => {
-        console.error("❌ SSE Error", e);
+      eventSource.onerror = (e) => {
+        console.error("SSE Error", e);
         if (eventSourceRef.current) {
           eventSourceRef.current.close();
           eventSourceRef.current = null;
@@ -299,27 +333,25 @@ export default function ChatInterface() {
         setIsStreaming(false);
         setMessages((m) =>
           m.map((msg) =>
-            msg.isStreaming ? { ...msg, isStreaming: false } : msg
-          )
+            msg.isStreaming ? { ...msg, isStreaming: false } : msg,
+          ),
         );
       };
 
-      eventSourceRef.current.onmessage = (e) => {
+      eventSource.onmessage = (e: MessageEvent<string>) => {
         const { event: rawEvent, data: rawData } = parseEventMessage(e.data);
         const eventKey = `${rawEvent}-${rawData}`;
         if (processedEventsRef.current.has(eventKey)) return;
         processedEventsRef.current.add(eventKey);
 
-        let parsed;
+        let parsed: unknown;
         try {
           parsed = JSON.parse(rawData);
         } catch {
           parsed = rawData;
         }
 
-        // Look up and invoke the handler
         const handler = handlers[rawEvent] || defaultHandler;
-        console.log(rawEvent);
         handler(parsed, rawData, {
           setMessages,
           setIsStreaming,
@@ -329,9 +361,7 @@ export default function ChatInterface() {
         });
       };
 
-      // Handle the 'done' event properly
-      eventSourceRef.current.addEventListener("done", () => {
-        console.log("✅ SSE Done");
+      eventSource.addEventListener("done", () => {
         if (eventSourceRef.current) {
           eventSourceRef.current.close();
           eventSourceRef.current = null;
@@ -339,8 +369,8 @@ export default function ChatInterface() {
         setIsStreaming(false);
         setMessages((m) =>
           m.map((msg) =>
-            msg.isStreaming ? { ...msg, isStreaming: false } : msg
-          )
+            msg.isStreaming ? { ...msg, isStreaming: false } : msg,
+          ),
         );
       });
     } catch (err) {
@@ -352,8 +382,9 @@ export default function ChatInterface() {
           copy.length &&
           copy[copy.length - 1].from === "bot" &&
           copy[copy.length - 1].isStreaming
-        )
+        ) {
           copy.pop();
+        }
         return copy;
       });
     }
@@ -375,16 +406,14 @@ export default function ChatInterface() {
             </div>
           )}
 
-          {messages.map((message, index) => {
-            return (
-              <ChatBubble
-                key={index}
-                message={message}
-                index={index}
-                downloadLinks={message.downloadLinks || []}
-              />
-            );
-          })}
+          {messages.map((message, index) => (
+            <ChatBubble
+              key={index}
+              message={message}
+              index={index}
+              downloadLinks={message.downloadLinks || []}
+            />
+          ))}
 
           <div ref={scrollRef} />
         </div>
