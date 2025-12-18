@@ -14,9 +14,9 @@ const badgeVariants = cva(
           "border-transparent bg-secondary text-secondary-foreground ring-offset-background",
         outline: "text-foreground",
         success:
-          "border-transparent bg-emerald-500/15 text-emerald-200 ring-offset-background",
+          "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 ring-offset-background",
         warning:
-          "border-transparent bg-amber-500/15 text-amber-200 ring-offset-background",
+          "border-transparent bg-amber-500/15 text-amber-800 dark:text-amber-200 ring-offset-background",
         info: "border-transparent bg-accent/15 text-accent-foreground ring-offset-background",
         muted: "border-transparent bg-muted text-muted-foreground",
       },

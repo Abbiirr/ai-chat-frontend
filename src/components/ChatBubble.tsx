@@ -17,22 +17,22 @@ const categoryConfig: Record<
 > = {
   relevant: {
     title: "Highly Relevant",
-    tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+    tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-100",
     dot: "bg-emerald-400",
   },
   less_relevant: {
     title: "Less Relevant",
-    tone: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+    tone: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-100",
     dot: "bg-amber-400",
   },
   not_relevant: {
     title: "Not Relevant",
-    tone: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+    tone: "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-200",
     dot: "bg-slate-300",
   },
   trace_analysis: {
     title: "Trace Analysis",
-    tone: "border-sky-500/30 bg-sky-500/10 text-sky-100",
+    tone: "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-100",
     dot: "bg-sky-300",
   },
   master_summary: {
@@ -42,7 +42,7 @@ const categoryConfig: Record<
   },
   verification: {
     title: "Verification",
-    tone: "border-violet-500/30 bg-violet-500/10 text-violet-100",
+    tone: "border-violet-500/30 bg-violet-500/10 text-violet-800 dark:text-violet-100",
     dot: "bg-violet-300",
   },
 };

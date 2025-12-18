@@ -68,8 +68,8 @@
 
   .dark body {
     background-image: none;
-    background-color: #171717;
-    color: #eee;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 
   a {

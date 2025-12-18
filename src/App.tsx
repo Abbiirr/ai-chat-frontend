@@ -12,7 +12,7 @@ export default function App() {
               <p className="text-xs font-medium text-muted-foreground">
                 Observability copilot
               </p>
-              <h1 className="text-base font-semibold tracking-tight">Loggy</h1>
+              <h1 className="text-base font-semibold tracking-tight">Logchat</h1>
             </div>
             <ThemeToggle />
           </div>

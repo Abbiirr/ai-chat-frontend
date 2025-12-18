@@ -30,7 +30,7 @@
 - Cleanup: SSE is closed on component unmount and when errors occur.
 
 ## UI components
-- `ChatInterface`: header (“Loggy”), welcome placeholder, message list, and the input footer. Scrolls to the newest message via `scrollRef`.
+- `ChatInterface`: header (“Logchat”), welcome placeholder, message list, and the input footer. Scrolls to the newest message via `scrollRef`.
 - `ChatBubble`: renders user/bot bubbles, optional typing dots for `isStreaming`, and grouped download pills per link `type` (`relevant`, `less_relevant`, `not_relevant`, `trace_analysis`, `master_summary`, `verification`). Non-ASCII glyphs in titles/icons come from the source assets.
 - `ChatInput`: textarea that auto-grows, sends via `<Send />` icon button, and exposes three selectors (project, env, domain) backed by `ToolButton`. Shows current selections as “param pills”. Send is disabled while streaming or when the input is empty.
 - `ToolButton`: icon button (default `Settings2`, can be overridden) that opens a dropdown of options and calls `onSelect(option)`.

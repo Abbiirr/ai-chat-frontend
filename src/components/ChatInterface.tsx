@@ -417,7 +417,7 @@ export default function ChatInterface() {
           {messages.length === 0 ? (
             <div className="flex min-h-[45vh] flex-col justify-center gap-3">
               <Badge variant="muted" className="w-fit px-3 py-1 text-xs uppercase">
-                Loggy is ready
+                Logchat is ready
               </Badge>
               <div className="space-y-1">
                 <p className="text-xl font-semibold tracking-tight">
