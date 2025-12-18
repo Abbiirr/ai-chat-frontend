@@ -1,4 +1,4 @@
-import { ArrowDownToLine } from "lucide-react";
+import { FileText } from "lucide-react";
 
 import type { DownloadLink, Message } from "../types";
 import { cn } from "../lib/utils";
@@ -9,6 +9,7 @@ type ChatBubbleProps = {
   message: Message;
   index: number;
   downloadLinks?: DownloadLink[];
+  onOpenFile?: (link: DownloadLink) => void;
 };
 
 const categoryConfig: Record<
@@ -51,6 +52,7 @@ export default function ChatBubble({
   message,
   index: _index, // reserved for keyed animations
   downloadLinks = [],
+  onOpenFile,
 }: ChatBubbleProps) {
   const isUser = message.from === "user";
   const body =
@@ -119,17 +121,14 @@ export default function ChatBubble({
                   </div>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {links.map((link, idx) => (
-                      <a
+                      <button
                         key={`${category}-${idx}-${link.name}`}
-                        href={link.url}
-                        download={link.name}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground underline-offset-4 transition hover:border-primary/60 hover:bg-muted"
+                        onClick={() => onOpenFile?.(link)}
+                        className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground text-left transition hover:border-primary/60 hover:bg-muted"
                       >
-                        <ArrowDownToLine className="h-4 w-4 shrink-0" />
+                        <FileText className="h-4 w-4 shrink-0" />
                         <span className="truncate">{link.name}</span>
-                      </a>
+                      </button>
                     ))}
                   </div>
                 </div>

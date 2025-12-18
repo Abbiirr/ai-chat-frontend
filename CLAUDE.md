@@ -42,3 +42,10 @@ Set `VITE_API_URL` in `.env` to configure the backend API endpoint. Defaults to 
 Built-in SSE handlers: `Extracted Parameters`, `Downloaded logs in file`, `Found trace id(s)`, `Compiled Request Traces`, `Compiled Summary`, `Verification Results`, `done`. Unknown events use `defaultHandler`.
 
 To add a new SSE event: add a handler in the `handlers` object in `ChatInterface.tsx`.
+
+## Documentation
+
+Implementation plans and technical documentation are stored in `docs/`:
+- `summary-canvas-plan.md` - Summary Analysis Canvas feature (Claude Canvas-style side panel for log analysis)
+- `shadcn-tailwind-plan.md` - Shadcn/Tailwind integration plan
+- `STYLING_ISSUES.md` - Known styling issues and fixes

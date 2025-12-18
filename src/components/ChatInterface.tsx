@@ -1,14 +1,17 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ChatRequestBody,
   DownloadLink,
+  FileViewerState,
   Message,
   StreamEventPayload,
 } from "../types";
 import ChatBubble from "./ChatBubble";
 import ChatInput from "./ChatInput";
 import { Badge } from "./ui/badge";
+import { FileViewerModal } from "./file-viewer";
+import { parseSummaryContent } from "../lib/parseSummaryContent";
 
 type SummaryPayload = {
   created_files?: string[];
@@ -258,9 +261,20 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [fileViewer, setFileViewer] = useState<FileViewerState>({
+    isOpen: false,
+    isLoading: false,
+    error: null,
+    filename: null,
+    fileType: null,
+    content: null,
+    parsedContent: null,
+    downloadUrl: null,
+  });
   const messagesWrapperRef = useRef<HTMLDivElement | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const processedEventsRef = useRef<Set<string>>(new Set());
+  const fileViewerAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
@@ -283,6 +297,99 @@ export default function ChatInterface() {
       });
     });
   }, [messages]);
+
+  const openFileViewer = useCallback(async (link: DownloadLink) => {
+    // Cancel any existing fetch
+    if (fileViewerAbortRef.current) {
+      fileViewerAbortRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    fileViewerAbortRef.current = controller;
+
+    const downloadUrl = link.url;
+
+    setFileViewer({
+      isOpen: true,
+      isLoading: true,
+      error: null,
+      filename: link.name,
+      fileType: link.type,
+      content: null,
+      parsedContent: null,
+      downloadUrl,
+    });
+
+    try {
+      const contentUrl = new URL("/content/", apiBase);
+      contentUrl.searchParams.set("filename", link.name);
+
+      const response = await fetch(contentUrl.toString(), {
+        headers: { accept: "application/json" },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Handle JSON response
+      const contentType = response.headers.get("content-type");
+      let content: string;
+
+      if (contentType?.includes("application/json")) {
+        const json = await response.json();
+        content = json.content || JSON.stringify(json, null, 2);
+      } else {
+        content = await response.text();
+      }
+
+      // Parse if master_summary, otherwise keep raw
+      let parsedContent = null;
+      if (link.type === "master_summary") {
+        try {
+          parsedContent = parseSummaryContent(content, link.name);
+        } catch (parseError) {
+          console.warn("Parse failed, falling back to raw:", parseError);
+        }
+      }
+
+      setFileViewer((prev) => ({
+        ...prev,
+        isLoading: false,
+        content,
+        parsedContent,
+      }));
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return; // Silently ignore aborted fetches
+      }
+      setFileViewer((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : "Failed to load file",
+      }));
+    }
+  }, []);
+
+  const closeFileViewer = useCallback(() => {
+    // Abort any in-flight fetch
+    if (fileViewerAbortRef.current) {
+      fileViewerAbortRef.current.abort();
+      fileViewerAbortRef.current = null;
+    }
+
+    setFileViewer({
+      isOpen: false,
+      isLoading: false,
+      error: null,
+      filename: null,
+      fileType: null,
+      content: null,
+      parsedContent: null,
+      downloadUrl: null,
+    });
+  }, []);
 
   const sendMessage = async (
     userMessage: string,
@@ -435,6 +542,7 @@ export default function ChatInterface() {
                 message={message}
                 index={index}
                 downloadLinks={message.downloadLinks || []}
+                onOpenFile={openFileViewer}
               />
             ))
           )}
@@ -451,6 +559,8 @@ export default function ChatInterface() {
           />
         </div>
       </div>
+
+      <FileViewerModal state={fileViewer} onClose={closeFileViewer} />
     </div>
   );
 }
