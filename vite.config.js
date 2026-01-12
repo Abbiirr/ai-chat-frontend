@@ -20,7 +20,11 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       proxy: {
         "/api": apiTarget,
+        "/download": apiTarget,
+        "/content": apiTarget,
       },
     },
+    // Handle client-side routing - serve index.html for all non-asset routes
+    appType: "spa",
   };
 });

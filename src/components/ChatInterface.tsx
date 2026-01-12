@@ -5,6 +5,7 @@ import type {
   DownloadLink,
   FileViewerState,
   Message,
+  MessageResponse,
   StreamEventPayload,
 } from "../types";
 import ChatBubble from "./ChatBubble";
@@ -12,6 +13,21 @@ import ChatInput from "./ChatInput";
 import { Badge } from "./ui/badge";
 import { FileViewerModal } from "./file-viewer";
 import { parseSummaryContent } from "../lib/parseSummaryContent";
+import { useConversation } from "./conversation-provider";
+import { conversationApi, ConversationApiError } from "../lib/conversationApi";
+
+/**
+ * Convert MessageResponse from API to local Message format
+ */
+function convertApiMessageToLocal(apiMessage: MessageResponse): Message {
+  const role = apiMessage.role === "user" ? "user" : "bot";
+  return {
+    from: role,
+    text: apiMessage.content,
+    isStreaming: false,
+    downloadLinks: [],
+  };
+}
 
 type SummaryPayload = {
   created_files?: string[];
@@ -170,6 +186,53 @@ const handlers: Record<string, Handler> = {
 
   "Compiled Request Traces": createTextAppender(() => "Compiled Request Traces"),
 
+  "Planned Steps": createTextAppender((parsed) => {
+    if (typeof parsed === "object" && parsed !== null && "steps" in parsed) {
+      const steps = (parsed as { steps: string[] }).steps;
+      if (Array.isArray(steps)) {
+        return "Analysis Plan:\n" + steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
+      }
+    }
+    return typeof parsed === "string" ? parsed : JSON.stringify(parsed);
+  }),
+
+  "Found relevant files": createTextAppender((parsed) => {
+    if (typeof parsed === "object" && parsed !== null && "count" in parsed) {
+      return `Found ${(parsed as { count: number }).count} relevant files`;
+    }
+    return String(parsed);
+  }),
+
+  error: (parsed, raw, { setMessages, setIsStreaming, eventSourceRef }) => {
+    const errorMessage =
+      typeof parsed === "object" && parsed !== null && "message" in parsed
+        ? (parsed as { message: string }).message
+        : typeof parsed === "string"
+          ? parsed
+          : raw;
+
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.from === "bot") {
+        return [
+          ...prev.slice(0, -1),
+          {
+            ...last,
+            text: last.text + `\n\nError: ${errorMessage}`,
+            isStreaming: false,
+          },
+        ];
+      }
+      return prev;
+    });
+
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    setIsStreaming(false);
+  },
+
   done: (parsed, raw, { setMessages, setIsStreaming, eventSourceRef }) => {
     setMessages((prev) => {
       const last = prev[prev.length - 1];
@@ -258,9 +321,11 @@ const handlers: Record<string, Handler> = {
 };
 
 export default function ChatInterface() {
+  const conversation = useConversation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [useLegacyApi, setUseLegacyApi] = useState(false);
   const [fileViewer, setFileViewer] = useState<FileViewerState>({
     isOpen: false,
     isLoading: false,
@@ -276,6 +341,9 @@ export default function ChatInterface() {
   const processedEventsRef = useRef<Set<string>>(new Set());
   const fileViewerAbortRef = useRef<AbortController | null>(null);
 
+  // Track the previous conversation ID to detect changes
+  const prevConversationIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
@@ -284,6 +352,47 @@ export default function ChatInterface() {
       }
     };
   }, []);
+
+  // Sync messages from conversation context when conversation changes
+  useEffect(() => {
+    const currentId = conversation.currentConversationId;
+    const prevId = prevConversationIdRef.current;
+
+    // Conversation changed
+    if (currentId !== prevId) {
+      prevConversationIdRef.current = currentId;
+
+      if (currentId === null) {
+        // Conversation cleared - reset to empty
+        setMessages([]);
+      } else if (conversation.messages.length > 0) {
+        // Conversation loaded - convert and set messages
+        const converted = conversation.messages.map(convertApiMessageToLocal);
+        setMessages(converted);
+      }
+    }
+  }, [conversation.currentConversationId, conversation.messages]);
+
+  // Also sync when messages are refreshed after streaming
+  useEffect(() => {
+    // Only sync if we're using conversation API, not streaming, and have messages
+    if (
+      conversation.currentConversationId &&
+      !isStreaming &&
+      conversation.messages.length > 0 &&
+      !useLegacyApi
+    ) {
+      // Check if conversation messages have more messages than local
+      // This happens after refreshMessages() is called
+      const localCount = messages.filter((m) => !m.isStreaming).length;
+      const apiCount = conversation.messages.length;
+
+      if (apiCount > localCount) {
+        const converted = conversation.messages.map(convertApiMessageToLocal);
+        setMessages(converted);
+      }
+    }
+  }, [conversation.messages, conversation.currentConversationId, isStreaming, useLegacyApi, messages]);
 
   useEffect(() => {
     const container = messagesWrapperRef.current;
@@ -391,6 +500,161 @@ export default function ChatInterface() {
     });
   }, []);
 
+  // Legacy API call (fallback when conversation feature is disabled)
+  const sendMessageLegacy = async (
+    userMessage: string,
+    project: string,
+    env: string,
+    domain: string,
+  ) => {
+    const requestBody: ChatRequestBody = {
+      prompt: userMessage,
+      project,
+      env,
+      domain,
+    };
+
+    const response = await fetch(buildApiUrl("/api/chat"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const { streamUrl } = (await response.json()) as { streamUrl: string };
+    return new URL(streamUrl, apiBase).toString();
+  };
+
+  // Track current execution for status updates
+  const currentExecutionRef = useRef<string | null>(null);
+
+  // Conversation API call (preferred when feature is enabled)
+  const sendMessageConversation = async (
+    userMessage: string,
+    project: string,
+    env: string,
+    domain: string,
+  ): Promise<string> => {
+    let conversationId = conversation.currentConversationId;
+
+    // Create conversation if none exists
+    if (!conversationId) {
+      const newConversation = await conversation.createConversation(
+        project,
+        env,
+        domain,
+      );
+      conversationId = newConversation.conversation_id;
+    }
+
+    // Add message and get stream URL
+    const { execution_id, stream_url } = await conversationApi.addMessage(conversationId, {
+      content: userMessage,
+    });
+
+    // Track execution
+    currentExecutionRef.current = execution_id;
+    conversation.addExecution({
+      execution_id,
+      status: "running",
+      prompt: userMessage,
+      extracted_params: null,
+      trace_ids: null,
+      report_files: null,
+      error_message: null,
+      started_at: new Date().toISOString(),
+      completed_at: null,
+    });
+
+    return stream_url.startsWith("http")
+      ? stream_url
+      : new URL(stream_url, apiBase).toString();
+  };
+
+  const connectToStream = (streamUrl: string) => {
+    const eventSource = new EventSource(streamUrl);
+    eventSourceRef.current = eventSource;
+
+    eventSource.onerror = (e) => {
+      console.error("SSE Error", e);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      setIsStreaming(false);
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.isStreaming ? { ...msg, isStreaming: false } : msg,
+        ),
+      );
+    };
+
+    eventSource.onmessage = (e: MessageEvent<string>) => {
+      const { event: rawEvent, data: rawData } = parseEventMessage(e.data);
+      const eventKey = `${rawEvent}-${rawData}`;
+      if (processedEventsRef.current.has(eventKey)) return;
+      processedEventsRef.current.add(eventKey);
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(rawData);
+      } catch {
+        parsed = rawData;
+      }
+
+      const handler = handlers[rawEvent] || defaultHandler;
+      handler(parsed, rawData, {
+        setMessages,
+        setIsStreaming,
+        eventSourceRef,
+        buildDownloadLinks,
+        rawEvent,
+      });
+    };
+
+    eventSource.addEventListener("done", () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      setIsStreaming(false);
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.isStreaming ? { ...msg, isStreaming: false } : msg,
+        ),
+      );
+
+      // Update execution status
+      if (currentExecutionRef.current) {
+        conversation.updateExecution({
+          execution_id: currentExecutionRef.current,
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        });
+        currentExecutionRef.current = null;
+      }
+
+      // Refresh messages from server if using conversation API
+      if (conversation.currentConversationId && !useLegacyApi) {
+        conversation.refreshMessages();
+      }
+    });
+
+    // Handle error event specifically
+    eventSource.addEventListener("error", () => {
+      // Update execution status as failed
+      if (currentExecutionRef.current) {
+        conversation.updateExecution({
+          execution_id: currentExecutionRef.current,
+          status: "failed",
+          completed_at: new Date().toISOString(),
+        });
+        currentExecutionRef.current = null;
+      }
+    });
+  };
+
   const sendMessage = async (
     userMessage: string,
     project: string,
@@ -405,86 +669,44 @@ export default function ChatInterface() {
     setInput("");
     setIsStreaming(true);
 
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
     try {
-      const requestBody: ChatRequestBody = {
-        prompt: userMessage,
-        project,
-        env,
-        domain,
-      };
+      let streamUrl: string;
 
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
+      // Try conversation API first (unless we know it's disabled)
+      if (!useLegacyApi && conversation.featureEnabled !== false) {
+        try {
+          streamUrl = await sendMessageConversation(
+            userMessage,
+            project,
+            env,
+            domain,
+          );
+        } catch (error) {
+          // If 501 (feature disabled), fall back to legacy API
+          if (error instanceof ConversationApiError && error.isFeatureDisabled) {
+            console.info("Conversation API disabled, falling back to legacy API");
+            setUseLegacyApi(true);
+            streamUrl = await sendMessageLegacy(userMessage, project, env, domain);
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        // Use legacy API
+        streamUrl = await sendMessageLegacy(userMessage, project, env, domain);
       }
-
-      const response = await fetch(buildApiUrl("/api/chat"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const { streamUrl } = (await response.json()) as { streamUrl: string };
 
       setMessages((m) => [
         ...m,
         { from: "bot", text: "", isStreaming: true, downloadLinks: [] },
       ]);
 
-      const eventSource = new EventSource(new URL(streamUrl, apiBase).toString());
-      eventSourceRef.current = eventSource;
-
-      eventSource.onerror = (e) => {
-        console.error("SSE Error", e);
-        if (eventSourceRef.current) {
-          eventSourceRef.current.close();
-          eventSourceRef.current = null;
-        }
-        setIsStreaming(false);
-        setMessages((m) =>
-          m.map((msg) =>
-            msg.isStreaming ? { ...msg, isStreaming: false } : msg,
-          ),
-        );
-      };
-
-      eventSource.onmessage = (e: MessageEvent<string>) => {
-        const { event: rawEvent, data: rawData } = parseEventMessage(e.data);
-        const eventKey = `${rawEvent}-${rawData}`;
-        if (processedEventsRef.current.has(eventKey)) return;
-        processedEventsRef.current.add(eventKey);
-
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(rawData);
-        } catch {
-          parsed = rawData;
-        }
-
-        const handler = handlers[rawEvent] || defaultHandler;
-        handler(parsed, rawData, {
-          setMessages,
-          setIsStreaming,
-          eventSourceRef,
-          buildDownloadLinks,
-          rawEvent,
-        });
-      };
-
-      eventSource.addEventListener("done", () => {
-        if (eventSourceRef.current) {
-          eventSourceRef.current.close();
-          eventSourceRef.current = null;
-        }
-        setIsStreaming(false);
-        setMessages((m) =>
-          m.map((msg) =>
-            msg.isStreaming ? { ...msg, isStreaming: false } : msg,
-          ),
-        );
-      });
+      connectToStream(streamUrl);
     } catch (err) {
       console.error("SendMessage Error", err);
       setIsStreaming(false);

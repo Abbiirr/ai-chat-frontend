@@ -1,4 +1,7 @@
-export type Role = "user" | "bot";
+export type Role = "user" | "bot" | "assistant" | "system";
+
+// Re-export conversation types
+export * from "./types/conversation";
 
 export type DownloadType =
   | "relevant"
